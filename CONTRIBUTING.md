@@ -4,9 +4,7 @@ Dembrandt reveals any website’s brand the way Rembrandt revealed light from sh
 
 De-em-brand-t is the smartest way to dissect a brand, design system and design tokens from any website. Useful for various use cases.
 
-I’m @thevangelist, the slightly crazy guy behind it.
-
-Stargazers, dreamers, bug hunters — I welcome you all.
+I’m @thevangelist, and I welcome you to develop this creative tool with me. Be it stargazers, dreamers, bug hunters, or just local hobos.
 
 Please tell me about:
 
@@ -24,9 +22,7 @@ Please tell me about:
 - How you wish to use this thing
 - Your latest dream (or nightmare)
 
-I am quite easy to work with. Really.  
+I am quite easy to work with. Really. 
 Spam me in Issues, PRs, or anywhere. I reply to everything.
 
-Let’s keep the light alive together.
-
-@thevangelist
+@thevangelist.

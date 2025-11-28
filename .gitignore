@@ -18,6 +18,7 @@ npm-debug.log*
 
 # Output
 output/
+test-output/
 
 # Don't commit example outputs (but allow examples/ directory)
 *.json

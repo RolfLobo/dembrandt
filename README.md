@@ -25,7 +25,7 @@ Requires Node.js 18+
 - Spacing (margin/padding scales)
 - Borders (radius, widths, styles, colors)
 - Shadows
-- Components (buttons, inputs, links)
+- Components (buttons, badges, inputs, links)
 - Breakpoints
 - Icons & frameworks
 
@@ -36,7 +36,7 @@ dembrandt <url>                    # Basic extraction (terminal display only)
 dembrandt bmw.de --json-only       # Output raw JSON to terminal (no formatted display, no file save)
 dembrandt bmw.de --save-output     # Save JSON to output/bmw.de/YYYY-MM-DDTHH-MM-SS.json
 dembrandt bmw.de --dark-mode       # Extract colors from dark mode variant
-dembrandt bmw.de --mobile          # Use mobile viewport (375x667) for responsive analysis
+dembrandt bmw.de --mobile          # Use mobile viewport (390x844, iPhone 12/13/14/15) for responsive analysis
 dembrandt bmw.de --slow            # 3x longer timeouts (24s hydration) for JavaScript-heavy sites
 dembrandt bmw.de --no-sandbox      # Disable Chromium sandbox (required for Docker/CI)
 ```
@@ -79,7 +79,7 @@ Uses Playwright to render the page, extracts computed styles from the DOM, analy
 - Canvas/WebGL-rendered sites cannot be analyzed (e.g., Tesla, Apple Vision Pro demos)
 - JavaScript-heavy sites require hydration time (8s initial + 4s stabilization)
 - Some dynamically-loaded content may be missed
-- Default viewport is 1920x1080 (use --mobile for responsive analysis)
+- Default viewport is 1920x1080 (use --mobile for 390x844 iPhone viewport)
 
 ## Ethics & Legality
 

@@ -19,47 +19,38 @@ import { join } from "path";
 program
   .name("dembrandt")
   .description("Extract design tokens from any website")
-  .version("1.0.0")
+  .version("0.4.0")
   .argument("<url>")
   .option("--json-only", "Output raw JSON")
-  .option("-d, --debug", "Force visible browser")
   .option("--save-output", "Save JSON file to output folder")
-  .option("--verbose-colors", "Show medium and low confidence colors")
   .option("--dark-mode", "Extract colors from dark mode")
   .option("--mobile", "Extract from mobile viewport")
   .option("--slow", "3x longer timeouts for slow-loading sites")
+  .option("--no-sandbox", "Disable browser sandbox (needed for Docker/CI)")
   .action(async (input, opts) => {
     let url = input;
-    if (!url.match(/^https?:\/\//)) url = "https://" + url;
+    if (!url.startsWith("http://") && !url.startsWith("https://")) {
+      url = "https://" + url;
+    }
 
     const spinner = ora("Starting extraction...").start();
     let browser = null;
 
     try {
-      let useHeaded = opts.debug;
+      let useHeaded = false;
       let result;
 
       while (true) {
-        spinner.text = `Launching browser (${
-          useHeaded ? "visible" : "headless"
-        } mode)`;
+        spinner.text = `Launching browser (${useHeaded ? "visible" : "headless"
+          } mode)`;
+        const launchArgs = ["--disable-blink-features=AutomationControlled"];
+        if (opts.noSandbox) {
+          launchArgs.push("--no-sandbox", "--disable-setuid-sandbox");
+        }
         browser = await chromium.launch({
           headless: !useHeaded,
-          args: [
-            "--no-sandbox",
-            "--disable-setuid-sandbox",
-            "--disable-blink-features=AutomationControlled",
-          ],
+          args: launchArgs,
         });
-        if (opts.debug) {
-          console.log(
-            chalk.dim(
-              `  ✓ Browser launched in ${
-                useHeaded ? "visible" : "headless"
-              } mode`
-            )
-          );
-        }
 
         try {
           result = await extractBranding(url, spinner, browser, {
@@ -129,26 +120,13 @@ program
         console.log(JSON.stringify(result, null, 2));
       } else {
         console.log();
-        displayResults(result, { verboseColors: opts.verboseColors });
+        displayResults(result);
       }
     } catch (err) {
       spinner.fail("Failed");
       console.error(chalk.red("\n✗ Extraction failed"));
       console.error(chalk.red(`  Error: ${err.message}`));
       console.error(chalk.dim(`  URL: ${url}`));
-
-      if (opts.debug && err.stack) {
-        console.error(chalk.dim("\nStack trace:"));
-        console.error(chalk.dim(err.stack));
-      }
-
-      if (!opts.debug) {
-        console.log(
-          chalk.hex('#FFB86C')(
-            "\nTip: Try with --debug flag for tough sites and detailed error logs"
-          )
-        );
-      }
       process.exit(1);
     } finally {
       if (browser) await browser.close();

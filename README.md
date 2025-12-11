@@ -32,16 +32,16 @@ Requires Node.js 18+
 ## Usage
 
 ```bash
-dembrandt <url>                    # Basic extraction
-dembrandt bmw.de --save-output     # Save JSON to output folder
-dembrandt bmw.de --json-only       # JSON output only (no save)
-dembrandt bmw.de --debug           # Visible browser
-dembrandt bmw.de --dark-mode       # Dark mode
-dembrandt bmw.de --mobile          # Mobile viewport
-dembrandt bmw.de --slow            # 3x timeouts
+dembrandt <url>                    # Basic extraction (terminal display only)
+dembrandt bmw.de --json-only       # Output raw JSON to terminal (no formatted display, no file save)
+dembrandt bmw.de --save-output     # Save JSON to output/bmw.de/YYYY-MM-DDTHH-MM-SS.json
+dembrandt bmw.de --dark-mode       # Extract colors from dark mode variant
+dembrandt bmw.de --mobile          # Use mobile viewport (375x667) for responsive analysis
+dembrandt bmw.de --slow            # 3x longer timeouts (24s hydration) for JavaScript-heavy sites
+dembrandt bmw.de --no-sandbox      # Disable Chromium sandbox (required for Docker/CI)
 ```
 
-By default, results display in terminal only. Use `--save-output` to save JSON to `output/bmw.de/YYYY-MM-DDTHH-MM-SS.json`
+Default: formatted terminal display only. Use `--save-output` to persist results as JSON files. Browser automatically retries in visible mode if headless extraction fails.
 
 ## Use Cases
 

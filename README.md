@@ -6,15 +6,19 @@
 
 Extract any website’s design system into design tokens in a few seconds: logo, colors, typography, borders, and more. One command.
 
-![Dembrandt — Any website to design tokens](docs/screenshots/banner.png)
+![Dembrandt — Any website to design tokens](docs/images/banner.png)
 
 **CLI output**
 
-![CLI extraction of netflix.com](docs/screenshots/cli-output.png)
+![CLI extraction of netflix.com](docs/images/cli-output.png)
+
+**Brand Guide PDF**
+
+![Brand guide PDF extracted from any URL](docs/images/brand-guide.png)
 
 **Local UI**
 
-![Local UI showing extracted brand](docs/screenshots/local-ui.png)
+![Local UI showing extracted brand](docs/images/local-ui.png)
 
 ## Install
 
@@ -49,6 +53,7 @@ dembrandt bmw.de --dtcg            # Export in W3C Design Tokens (DTCG) format (
 dembrandt bmw.de --dark-mode       # Extract colors from dark mode variant
 dembrandt bmw.de --mobile          # Use mobile viewport (390x844, iPhone 12/13/14/15) for responsive analysis
 dembrandt bmw.de --slow            # 3x longer timeouts (24s hydration) for JavaScript-heavy sites
+dembrandt bmw.de --brand-guide      # Generate a brand guide PDF
 dembrandt bmw.de --no-sandbox      # Disable Chromium sandbox (required for Docker/CI)
 dembrandt bmw.de --browser=firefox # Use Firefox instead of Chromium (better for Cloudflare bypass)
 ```

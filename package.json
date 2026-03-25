@@ -1,6 +1,6 @@
 {
   "name": "dembrandt",
-  "version": "0.7.1",
+  "version": "0.7.2",
   "description": "Extract design tokens and brand assets from any website",
   "main": "index.js",
   "type": "module",

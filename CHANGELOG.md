@@ -5,7 +5,7 @@
 ### Added
 - `--slow` flag for slow-loading sites with 3x longer timeouts
 - Tailwind CSS exporter (`lib/exporters.js`)
-- Brand challenge test suite against SPA/heavy-JS sites (Tesla, Dribbble, SoundCloud, Airtable, Product Hunt, Behance)
+- Challenge test suite against a set of public SPA / heavy-JS sites
 - GitHub Actions CI workflow for automated testing
 - Border detection with confidence scoring
 

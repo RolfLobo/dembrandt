@@ -4,37 +4,25 @@
 [![npm downloads](https://img.shields.io/npm/dm/dembrandt.svg)](https://www.npmjs.com/package/dembrandt)
 [![license](https://img.shields.io/npm/l/dembrandt.svg)](https://github.com/dembrandt/dembrandt/blob/main/LICENSE)
 
-Extract any website’s design system into design tokens in a few seconds: logo, colors, typography, borders, and more. One command.
+Extract a website's design system into design tokens in a few seconds: logo, colors, typography, borders, and more. One command.
 
 ![Dembrandt — Any website to design tokens](https://raw.githubusercontent.com/dembrandt/dembrandt/main/docs/images/banner.png)
-
-**CLI output**
-
-![CLI extraction of netflix.com](https://raw.githubusercontent.com/dembrandt/dembrandt/main/docs/images/cli-output.png)
-
-**Brand Guide PDF**
-
-![Brand guide PDF extracted from any URL](https://raw.githubusercontent.com/dembrandt/dembrandt/main/docs/images/brand-guide.png)
-
-**Local UI**
-
-![Local UI showing extracted brand](https://raw.githubusercontent.com/dembrandt/dembrandt/main/docs/images/local-ui.png)
 
 ## Install
 
 Install globally: `npm install -g dembrandt`
 
 ```bash
-dembrandt bmw.de
+dembrandt example.com
 ```
 
-Or use npx without installing: `npx dembrandt bmw.de`
+Or use npx without installing: `npx dembrandt example.com`
 
 Requires Node.js 18+
 
 ## AI Agent Integration (MCP)
 
-Use Dembrandt as a tool in Claude Code, Cursor, Windsurf, or any MCP-compatible client. Ask your agent to "extract the color palette from stripe.com" and it calls Dembrandt automatically.
+Use Dembrandt as a tool in Claude Code, Cursor, Windsurf, or any MCP-compatible client. Ask your agent to "extract the color palette from example.com" and it calls Dembrandt automatically.
 
 ```bash
 claude mcp add --transport stdio dembrandt -- npx -y dembrandt-mcp
@@ -69,44 +57,44 @@ Or add to your project's `.mcp.json`:
 ## Usage
 
 ```bash
-dembrandt <url>                    # Basic extraction (terminal display only)
-dembrandt bmw.de --json-only       # Output raw JSON to terminal (no formatted display, no file save)
-dembrandt bmw.de --save-output     # Save JSON to output/bmw.de/YYYY-MM-DDTHH-MM-SS.json
-dembrandt bmw.de --dtcg            # Export in W3C Design Tokens (DTCG) format (auto-saves as .tokens.json)
-dembrandt bmw.de --dark-mode       # Extract colors from dark mode variant
-dembrandt bmw.de --mobile          # Use mobile viewport (390x844, iPhone 12/13/14/15) for responsive analysis
-dembrandt bmw.de --slow            # 3x longer timeouts (24s hydration) for JavaScript-heavy sites
-dembrandt bmw.de --brand-guide      # Generate a brand guide PDF
-dembrandt bmw.de --design-md        # Generate a DESIGN.md file for AI agents
-dembrandt bmw.de --pages 5         # Analyze 5 pages (homepage + 4 discovered pages), merges results
-dembrandt bmw.de --sitemap          # Discover pages from sitemap.xml instead of DOM links
-dembrandt bmw.de --pages 10 --sitemap # Combine: up to 10 pages discovered via sitemap
-dembrandt bmw.de --no-sandbox      # Disable Chromium sandbox (required for Docker/CI)
-dembrandt bmw.de --browser=firefox # Use Firefox instead of Chromium (better for Cloudflare bypass)
+dembrandt <url>                        # Basic extraction (terminal display only)
+dembrandt example.com --json-only      # Output raw JSON to terminal (no formatted display, no file save)
+dembrandt example.com --save-output    # Save JSON to output/example.com/YYYY-MM-DDTHH-MM-SS.json
+dembrandt example.com --dtcg           # Export in W3C Design Tokens (DTCG) format (auto-saves as .tokens.json)
+dembrandt example.com --dark-mode      # Extract colors from dark mode variant
+dembrandt example.com --mobile         # Use mobile viewport (390x844) for responsive analysis
+dembrandt example.com --slow           # 3x longer timeouts (24s hydration) for JavaScript-heavy sites
+dembrandt example.com --brand-guide    # Generate a brand guide PDF
+dembrandt example.com --design-md      # Generate a DESIGN.md file for AI agents
+dembrandt example.com --pages 5        # Analyze 5 pages (homepage + 4 discovered pages), merges results
+dembrandt example.com --sitemap        # Discover pages from sitemap.xml instead of DOM links
+dembrandt example.com --pages 10 --sitemap # Combine: up to 10 pages discovered via sitemap
+dembrandt example.com --no-sandbox     # Disable Chromium sandbox (required for Docker/CI)
+dembrandt example.com --browser=firefox # Use Firefox instead of Chromium (better for Cloudflare bypass)
 ```
 
 Default: formatted terminal display only. Use `--save-output` to persist results as JSON files. Browser automatically retries in visible mode if headless extraction fails.
 
 ### Multi-Page Extraction
 
-Analyze multiple pages to get a more complete picture of a site's design system. Results are merged into a single unified output with cross-page confidence boosting — colors appearing on multiple pages get higher confidence scores.
+Analyze multiple pages to get a more complete picture of a site's design system. Results are merged into a single unified output with cross-page confidence boosting — tokens appearing on multiple pages get higher confidence scores.
 
 ```bash
 # Analyze homepage + 4 auto-discovered pages (default: 5 total)
-dembrandt stripe.com --pages 5
+dembrandt example.com --pages 5
 
 # Use sitemap.xml for page discovery instead of DOM link scraping
-dembrandt stripe.com --sitemap
+dembrandt example.com --sitemap
 
 # Combine both: up to 10 pages from sitemap
-dembrandt stripe.com --pages 10 --sitemap
+dembrandt example.com --pages 10 --sitemap
 ```
 
 **Page discovery** works two ways:
-- **DOM links** (default): Scrapes navigation, header, and footer links from the homepage, prioritizing key pages like /pricing, /about, /features
+- **DOM links** (default): Reads navigation, header, and footer links from the homepage, prioritizing key pages like /pricing, /about, /features
 - **Sitemap** (`--sitemap`): Parses sitemap.xml (checks robots.txt first), follows sitemapindex references, and scores URLs by importance
 
-Pages are crawled sequentially with polite delays. Failed pages are skipped without aborting the run.
+Pages are fetched sequentially with polite delays. Failed pages are skipped without aborting the run.
 
 ### Browser Selection
 
@@ -114,10 +102,10 @@ By default, dembrandt uses Chromium. If you encounter bot detection or timeouts 
 
 ```bash
 # Use Firefox instead of Chromium
-dembrandt bmw.de --browser=firefox
+dembrandt example.com --browser=firefox
 
 # Combine with other flags
-dembrandt bmw.de --browser=firefox --save-output --dtcg
+dembrandt example.com --browser=firefox --save-output --dtcg
 ```
 
 **When to use Firefox:**
@@ -137,24 +125,33 @@ npx playwright install firefox
 Use `--dtcg` to export in the standardized [W3C Design Tokens Community Group](https://www.designtokens.org/) format:
 
 ```bash
-dembrandt stripe.com --dtcg
-# Saves to: output/stripe.com/TIMESTAMP.tokens.json
+dembrandt example.com --dtcg
+# Saves to: output/example.com/TIMESTAMP.tokens.json
 ```
 
 The DTCG format is an industry-standard JSON schema that can be consumed by design tools and token transformation libraries like [Style Dictionary](https://styledictionary.com).
 
 ### DESIGN.md
 
-Use `--design-md` to generate a [DESIGN.md](https://stitch.withgoogle.com/docs/design-md) file — a plain-text design system document readable by AI agents like Google Stitch.
+Use `--design-md` to generate a [DESIGN.md](https://stitch.withgoogle.com/docs/design-md) file — a plain-text design system document readable by AI agents.
 
 ```bash
-dembrandt stripe.com --design-md
-# Saves to: output/stripe.com/DESIGN.md
+dembrandt example.com --design-md
+# Saves to: output/example.com/DESIGN.md
+```
+
+### Brand Guide PDF
+
+Use `--brand-guide` to generate a printable PDF summarizing the extracted design system — colors, typography, components, and logo on a single document.
+
+```bash
+dembrandt example.com --brand-guide
+# Saves to: output/example.com/TIMESTAMP.brand-guide.pdf
 ```
 
 ## Local UI
 
-Browse your extracted brands in a visual interface.
+Browse your extractions in a visual interface.
 
 ### Setup
 
@@ -173,7 +170,7 @@ Opens http://localhost:5173 with API on port 3002.
 
 ### Features
 
-- Visual grid of all extracted brands
+- Visual grid of all extractions
 - Color palettes with click-to-copy
 - Typography specimens
 - Spacing, shadows, border radius visualization
@@ -185,14 +182,14 @@ Extractions are performed via CLI (`dembrandt <url> --save-output`) and automati
 
 ## Use Cases
 
-- Brand audits & competitive analysis
 - Design system documentation
-- Reverse engineering brands
-- Multi-site brand consolidation
+- Multi-site design consolidation
+- Internal design audits on your own properties
+- Learning how design tokens map to real CSS
 
 ## How It Works
 
-Uses Playwright to render the page, extracts computed styles from the DOM, analyzes color usage and confidence, groups similar typography, detects spacing patterns, and returns actionable design tokens.
+Uses Playwright to render the page, reads computed styles from the DOM, analyzes color usage and confidence, groups similar typography, detects spacing patterns, and returns design tokens.
 
 ### Extraction Process
 
@@ -207,35 +204,33 @@ Uses Playwright to render the page, extracts computed styles from the DOM, analy
 
 ### Color Confidence
 
-- High — Logo, brand elements, primary buttons
-- Medium — Interactive elements, icons, navigation
+- High — Logo, primary interactive elements
+- Medium — Secondary interactive elements, icons, navigation
 - Low — Generic UI components (filtered from display)
 - Only shows high and medium confidence colors in terminal. Full palette in JSON.
 
 ## Limitations
 
-- Dark mode requires --dark-mode flag (not automatically detected)
+- Dark mode requires `--dark-mode` flag (not automatically detected)
 - Hover/focus states extracted from CSS (not fully interactive)
-- Canvas/WebGL-rendered sites cannot be analyzed (e.g., Tesla, Apple Vision Pro demos)
+- Canvas/WebGL-rendered sites cannot be analyzed (no DOM to read)
 - JavaScript-heavy sites require hydration time (8s initial + 4s stabilization)
 - Some dynamically-loaded content may be missed
-- Default viewport is 1920x1080 (use --mobile for 390x844 iPhone viewport)
+- Default viewport is 1920x1080 (use `--mobile` for 390x844 mobile viewport)
 
-## Ethics & Legality
+## Intended Use
 
-Dembrandt extracts publicly available design information (colors, fonts, spacing) from website DOMs for analysis purposes. This falls under fair use in most jurisdictions (USA's DMCA § 1201(f), EU Software Directive 2009/24/EC) when used for competitive analysis, documentation, or learning.
+Dembrandt reads publicly available CSS and computed styles from website DOMs for documentation, learning, and analysis of design systems you own or have permission to analyze.
 
-Legal: Analyzing public HTML/CSS is generally legal. Does not bypass protections or violate copyright. Check site ToS before mass extraction.
+Only run Dembrandt against sites whose Terms of Service permit automated access, or against your own properties. Do not use extracted material to reproduce third-party brand identities, logos, or trademarks. Respect robots.txt, rate limits, and copyright.
 
-Ethical: Use for inspiration and analysis, not direct copying. Respect servers (no mass crawling), give credit to sources, be transparent about data origin.
+Dembrandt does not host, redistribute, or claim rights to any third-party brand assets.
 
 ## Contributing
 
-Bugs you found? Weird websites that make it cry? Pull requests (even one-liners make me happy)?
+Bugs, weird sites, pull requests — all welcome.
 
-Spam me in [Issues](https://github.com/dembrandt/dembrandt/issues) or PRs. I reply to everything.
-
-Let's keep the light alive together.
+Open an [Issue](https://github.com/dembrandt/dembrandt/issues) or PR.
 
 @thevangelist
 

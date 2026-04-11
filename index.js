@@ -20,6 +20,7 @@ import { parseSitemap } from "./lib/discovery.js";
 import { mergeResults } from "./lib/merger.js";
 import { writeFileSync, mkdirSync } from "fs";
 import { join } from "path";
+import { checkRobotsTxt } from "./lib/robots.js";
 
 program
   .name("dembrandt")
@@ -57,6 +58,21 @@ program
     }
 
     const spinner = ora({ text: "Starting extraction...", stream: opts.jsonOnly ? process.stderr : process.stdout }).start();
+
+    try {
+      const robots = await checkRobotsTxt(url);
+      if (robots.status === "ok" && robots.allowed === false) {
+        spinner.warn(
+          chalk.hex("#FFB86C")(
+            `robots.txt disallows this path (rule: "${robots.rule}"). Proceeding anyway — respect the site's terms.`
+          )
+        );
+        spinner.start("Starting extraction...");
+      }
+    } catch {
+      // robots check is advisory; never block extraction
+    }
+
     let browser = null;
 
     try {
@@ -101,8 +117,7 @@ program
             let additionalUrls;
             if (opts.sitemap) {
               // Try post-redirect URL first, fall back to user-provided URL
-              // (sites like spotify.com redirect browser to open.spotify.com
-              // but sitemap lives at www.spotify.com)
+              // (some sites redirect to a subdomain while the sitemap stays on www)
               additionalUrls = await parseSitemap(result.url, maxPages);
               if (additionalUrls.length === 0 && result.url !== url) {
                 additionalUrls = await parseSitemap(url, maxPages);

@@ -114,7 +114,7 @@ function toolHandler(pick, extraOptions = {}) {
 
 // ── Shared params ──────────────────────────────────────────────────────
 
-const url = z.string().describe("Website URL (e.g. stripe.com)");
+const url = z.string().describe("Website URL (e.g. example.com)");
 const slow = z.boolean().optional().default(false).describe("3x timeouts for heavy SPAs");
 
 // ── Tools ──────────────────────────────────────────────────────────────

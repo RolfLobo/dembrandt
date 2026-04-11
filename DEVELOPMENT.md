@@ -27,15 +27,12 @@ npm run install-browser
 node index.js <url>
 
 # Run with options
-node index.js stripe.com --debug        # Visible browser
-node index.js stripe.com --json-only    # JSON only
-node index.js stripe.com --slow         # 3x timeouts
-
-# Brand challenge suite (tests against complex sites)
-npm run brand-challenge
+node index.js example.com --debug        # Visible browser
+node index.js example.com --json-only    # JSON only
+node index.js example.com --slow         # 3x timeouts
 
 # Version diff test (compare npm vs main branch)
-# Use Claude Code slash command: /test-version-diff stripe.com
+# Use Claude Code slash command: /test-version-diff example.com
 ```
 
 ## Testing
@@ -48,7 +45,7 @@ Compare output between the latest npm release and the main branch to catch regre
 
 ```bash
 # In Claude Code, use the slash command:
-/test-version-diff stripe.com
+/test-version-diff example.com
 
 # Or just:
 /test-version-diff
@@ -72,20 +69,20 @@ Compare output between the latest npm release and the main branch to catch regre
 
 ✅ **No differences:**
 ```
-🧪 Testing version diff for: stripe.com
-📁 Output directory: ./test-output/stripe.com-20250128-143022
+🧪 Testing version diff for: example.com
+📁 Output directory: ./test-output/example.com-20250128-143022
 
 📦 Running latest npm release version...
-✅ NPM version output saved to: ./test-output/stripe.com-20250128-143022/npm-release.json
+✅ NPM version output saved to: ./test-output/example.com-20250128-143022/npm-release.json
 
 🔨 Running current main branch version...
-✅ Main branch output saved to: ./test-output/stripe.com-20250128-143022/main-branch.json
+✅ Main branch output saved to: ./test-output/example.com-20250128-143022/main-branch.json
 
 📊 Comparing outputs...
 
 ✅ No differences found! Outputs are identical.
 
-📁 All files saved to: ./test-output/stripe.com-20250128-143022
+📁 All files saved to: ./test-output/example.com-20250128-143022
 ```
 
 📝 **With differences:**
@@ -94,8 +91,8 @@ Compare output between the latest npm release and the main branch to catch regre
 
 📝 Differences found:
 
---- ./test-output/stripe.com-20250128-143022/npm-release-formatted.json
-+++ ./test-output/stripe.com-20250128-143022/main-branch-formatted.json
+--- ./test-output/example.com-20250128-143022/npm-release-formatted.json
++++ ./test-output/example.com-20250128-143022/main-branch-formatted.json
 @@ -45,7 +45,10 @@
        "value": "1px",
        "count": 33,
@@ -108,7 +105,7 @@ Compare output between the latest npm release and the main branch to catch regre
    ],
    "typography": {
 
-💾 Full diff saved to: ./test-output/stripe.com-20250128-143022/diff.txt
+💾 Full diff saved to: ./test-output/example.com-20250128-143022/diff.txt
 ```
 
 **Use cases:**
@@ -116,24 +113,6 @@ Compare output between the latest npm release and the main branch to catch regre
 - After major refactoring to verify output consistency
 - When debugging extraction issues to compare behavior
 - To document intentional changes in output format
-
-### Brand Challenge Suite
-
-Test against complex SPA/interactive sites with heavy JavaScript:
-
-```bash
-npm run brand-challenge
-```
-
-Tests against:
-- Tesla (WebGL/3D, bot protection)
-- Dribbble (interactive previews)
-- SoundCloud (SPA, media streaming)
-- Airtable (SaaS grids, dynamic content)
-- Product Hunt (SPA, async listings)
-- Behance (portfolios, AJAX content)
-
-Uses `--slow` flag for 3x timeouts (24s hydration, 12s stabilization).
 
 ## Project Structure
 
@@ -145,7 +124,6 @@ dembrandt/
 │   └── display.js               # Terminal output formatting
 ├── test-version-diff.mjs        # Version comparison test
 ├── test-version-diff.sh         # Version comparison test (bash)
-├── run-no-login-challenge.mjs   # Brand challenge suite
 ├── examples/                    # Example outputs
 └── output/                      # Extraction outputs
 ```
@@ -163,8 +141,7 @@ See [CLAUDE.md](CLAUDE.md) for detailed architecture documentation, including:
 
 1. **Test changes:**
 ```bash
-npm run test:version-diff stripe.com
-npm run brand-challenge
+npm run test:version-diff example.com
 ```
 
 2. **Update version:**
@@ -187,7 +164,7 @@ npm publish
 
 5. **Verify:**
 ```bash
-npx dembrandt@latest stripe.com
+npx dembrandt@latest example.com
 ```
 
 ## Contributing Guidelines
@@ -206,7 +183,6 @@ npx dembrandt@latest stripe.com
 
 3. **Testing:**
    - Test against multiple sites (simple and complex)
-   - Run brand challenge suite
    - Run version diff test against known-good sites
    - Test with `--debug` flag to see browser behavior
 
@@ -289,7 +265,7 @@ await page.waitForTimeout(8000 * timeoutMultiplier);
 
 1. **Use `--debug` flag** to see browser:
 ```bash
-node index.js stripe.com --debug
+node index.js example.com --debug
 ```
 
 2. **Check extraction step by step:**
@@ -314,8 +290,8 @@ node index.js site.com --debug
 
 5. **Verify output structure:**
 ```bash
-node index.js stripe.com --json-only
-cat output/stripe.com/latest.json | jq .
+node index.js example.com --json-only
+cat output/example.com/latest.json | jq .
 ```
 
 ## Performance Optimization

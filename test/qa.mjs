@@ -8,8 +8,8 @@
  * Usage:
  *   node test/qa.mjs --baseline                  # Generate golden baselines for all sites
  *   node test/qa.mjs --diff                       # Compare current vs golden, generate HTML report
- *   node test/qa.mjs --site stripe.com            # Single site (baseline or diff)
- *   node test/qa.mjs --baseline --site stripe.com # Baseline single site
+ *   node test/qa.mjs --site example.com            # Single site (baseline or diff)
+ *   node test/qa.mjs --baseline --site example.com # Baseline single site
  */
 
 import { execSync } from "child_process";
@@ -383,7 +383,7 @@ async function main() {
     console.log("Usage:");
     console.log("  node test/qa.mjs --baseline              Generate golden baselines");
     console.log("  node test/qa.mjs --diff                  Compare current vs golden");
-    console.log("  node test/qa.mjs --site stripe.com       Target single site");
+    console.log("  node test/qa.mjs --site example.com       Target single site");
     console.log("  node test/qa.mjs --ci                    Exit 1 on regression");
     process.exit(0);
   }

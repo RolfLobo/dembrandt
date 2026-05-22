@@ -23,6 +23,7 @@ import { writeFileSync, mkdirSync, readFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 import { checkRobotsTxt } from "./lib/robots.js";
+import { runLint } from "./lib/lint.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const { version } = JSON.parse(readFileSync(join(__dirname, "package.json"), "utf8"));
@@ -45,6 +46,7 @@ program
   .option("--raw-colors", "Include pre-filter raw colors in JSON output")
   .option("--screenshot <path>", "Save a screenshot of the page")
   .option("--wcag", "Analyze WCAG contrast ratios between palette colors")
+  .option("--lint", "Run design lint rules; exit non-zero on errors (implies --wcag)")
   .option("--pages <n>", "Analyze up to N total pages including start URL (default: 5)", (v) => {
     const n = parseInt(v, 10);
     if (isNaN(n) || n < 1) throw new Error(`--pages must be a positive integer, got: ${v}`);
@@ -122,7 +124,7 @@ program
             slow: opts.slow,
             screenshotPath: opts.screenshot,
             discoverLinks: isMultiPage && !opts.sitemap ? maxPages : null,
-            wcag: opts.wcag,
+            wcag: opts.wcag || opts.lint,
           });
 
           // Multi-page crawl
@@ -322,6 +324,33 @@ program
         console.log();
         console.log(summaryLine);
         for (const notice of savedNotices) console.log(notice);
+      }
+
+      // Design lint (--lint): rules + non-zero exit on errors
+      if (opts.lint) {
+        let lintConfig = {};
+        try {
+          lintConfig = JSON.parse(readFileSync(join(process.cwd(), ".dembrandtrc.json"), "utf8"));
+        } catch {
+          // no .dembrandtrc.json; use defaults (report-only)
+        }
+        const report = runLint(result, lintConfig);
+        const out = opts.jsonOnly ? (...a) => console.error(...a) : (...a) => console.log(...a);
+        out();
+        out(color.accent("Design lint"));
+        if (report.findings.length === 0) {
+          out(chalk.green("  ✓ No issues found"));
+        } else {
+          for (const f of report.findings) {
+            const sym = f.severity === "error" ? chalk.red("✗") : chalk.hex("#FFB86C")("⚠");
+            out(`  ${sym} ${chalk.bold(f.rule)}  ${f.message}`);
+            if (f.detail) for (const d of f.detail) out(chalk.dim(`      ${d}`));
+          }
+          out();
+          out(chalk.dim(`  ${report.errors} error(s), ${report.warnings} warning(s)`));
+        }
+        out(report.pass ? chalk.green("  Result: PASS") : chalk.red("  Result: FAIL"));
+        process.exitCode = report.pass ? 0 : 1;
       }
     } catch (err) {
       spinner.fail("Failed");

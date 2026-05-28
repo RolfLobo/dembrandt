@@ -32,6 +32,7 @@ program
   .description("Extract design tokens from any website")
   .version(version)
   .argument("<url>")
+  .argument("[paths...]", "Additional paths to extract and merge, e.g. /pricing /docs")
   .option("--browser <type>", "Browser to use (chromium|firefox); set BROWSER_CDP_ENDPOINT env var to connect to an existing Chromium instance via CDP", "chromium")
   .option("--json-only", "Output raw JSON")
   .option("--save-output", "Save JSON file to output folder")
@@ -45,13 +46,19 @@ program
   .option("--raw-colors", "Include pre-filter raw colors in JSON output")
   .option("--screenshot <path>", "Save a screenshot of the page")
   .option("--wcag", "Analyze WCAG contrast ratios between palette colors")
-  .option("--pages <n>", "Analyze up to N total pages including start URL (default: 5)", (v) => {
+  .option("--crawl [n]", "Auto-discover and extract up to N pages via DOM links (default: 5)", (v) => {
+    if (v === undefined || v === true) return 5;
+    const n = parseInt(v, 10);
+    if (isNaN(n) || n < 1) throw new Error(`--crawl must be a positive integer, got: ${v}`);
+    return n;
+  })
+  .option("--pages <n>", "Alias for --crawl (deprecated)", (v) => {
     const n = parseInt(v, 10);
     if (isNaN(n) || n < 1) throw new Error(`--pages must be a positive integer, got: ${v}`);
     return n;
   })
   .option("--sitemap", "Discover pages from sitemap.xml instead of DOM links")
-  .action(async (input, opts) => {
+  .action(async (input, paths, opts) => {
     let url = input;
     if (!url.startsWith("http://") && !url.startsWith("https://")) {
       url = "https://" + url;
@@ -113,70 +120,79 @@ program
         }
 
         try {
-          const isMultiPage = opts.pages || opts.sitemap;
-          const maxPages = (opts.pages || 5) - 1; // -1 because homepage counts
+          const crawlN = opts.crawl ?? opts.pages ?? null;
+          const isAutoCrawl = crawlN && !opts.sitemap && (!paths || paths.length === 0);
+          const hasExplicitPaths = paths && paths.length > 0;
+
           result = await extractBranding(url, spinner, browser, {
             navigationTimeout: 90000,
             darkMode: opts.darkMode,
             mobile: opts.mobile,
             slow: opts.slow,
             screenshotPath: opts.screenshot,
-            discoverLinks: isMultiPage && !opts.sitemap ? maxPages : null,
+            discoverLinks: isAutoCrawl ? crawlN - 1 : null,
             wcag: opts.wcag,
           });
 
-          // Multi-page crawl
-          if (isMultiPage && maxPages > 0) {
-            if (!opts.jsonOnly) spinner.start("Discovering pages...");
+          // Build list of additional URLs to extract
+          let additionalUrls = [];
 
-            let additionalUrls;
-            if (opts.sitemap) {
-              // Try post-redirect URL first, fall back to user-provided URL
-              // (some sites redirect to a subdomain while the sitemap stays on www)
-              additionalUrls = await parseSitemap(result.url, maxPages);
-              if (additionalUrls.length === 0 && result.url !== url) {
-                additionalUrls = await parseSitemap(url, maxPages);
-              }
-            } else {
-              additionalUrls = result._discoveredLinks || [];
+          if (hasExplicitPaths) {
+            // Explicit paths: resolve against base URL
+            const base = new URL(result.url);
+            additionalUrls = paths.map(p => {
+              if (p.startsWith('http')) return p;
+              return `${base.protocol}//${base.host}${p.startsWith('/') ? p : '/' + p}`;
+            });
+          } else if (opts.sitemap) {
+            if (!opts.jsonOnly) spinner.start("Fetching sitemap...");
+            const max = crawlN ? crawlN - 1 : 20;
+            additionalUrls = await parseSitemap(result.url, max);
+            if (additionalUrls.length === 0 && result.url !== url) {
+              additionalUrls = await parseSitemap(url, max);
             }
+          } else if (isAutoCrawl) {
+            additionalUrls = result._discoveredLinks || [];
+          }
 
-            delete result._discoveredLinks;
+          delete result._discoveredLinks;
 
-            if (additionalUrls.length === 0) {
-              if (!opts.jsonOnly) spinner.warn("No additional pages discovered");
-            } else {
-              spinner.stop();
-              if (!opts.jsonOnly) console.log(chalk.dim(`  Found ${additionalUrls.length} page(s) to analyze`));
-
-              const allResults = [result];
-              for (let i = 0; i < additionalUrls.length; i++) {
-                const pageUrl = additionalUrls[i];
-                const pageNum = i + 2;
-                const total = additionalUrls.length + 1;
-                if (!opts.jsonOnly) spinner.start(`Extracting page ${pageNum}/${total}: ${new URL(pageUrl).pathname}`);
-
-                // Polite delay between pages
-                await new Promise(r => setTimeout(r, 2000 + Math.random() * 3000));
-
-                try {
-                  const pageResult = await extractBranding(pageUrl, spinner, browser, {
-                    navigationTimeout: 90000,
-                    darkMode: opts.darkMode,
-                    mobile: opts.mobile,
-                    slow: opts.slow,
-                  });
-                  delete pageResult._discoveredLinks;
-                  allResults.push(pageResult);
-                } catch (err) {
-                  if (!opts.jsonOnly) spinner.warn(`Skipping ${pageUrl}: ${String(err?.message || err).slice(0, 80)}`);
-                }
-              }
-
-              spinner.stop();
-              result = mergeResults(allResults);
+          if (additionalUrls.length === 0) {
+            if ((hasExplicitPaths || opts.sitemap || isAutoCrawl) && !opts.jsonOnly) {
+              spinner.warn("No additional pages discovered");
             }
           } else {
+            spinner.stop();
+            if (!opts.jsonOnly) console.log(chalk.dim(`  Found ${additionalUrls.length} page(s) to analyze`));
+
+            const allResults = [result];
+            for (let i = 0; i < additionalUrls.length; i++) {
+              const pageUrl = additionalUrls[i];
+              const pageNum = i + 2;
+              const total = additionalUrls.length + 1;
+              if (!opts.jsonOnly) spinner.start(`Extracting page ${pageNum}/${total}: ${new URL(pageUrl).pathname}`);
+
+              await new Promise(r => setTimeout(r, 1500 + Math.random() * 1500));
+
+              try {
+                const pageResult = await extractBranding(pageUrl, spinner, browser, {
+                  navigationTimeout: 90000,
+                  darkMode: opts.darkMode,
+                  mobile: opts.mobile,
+                  slow: opts.slow,
+                });
+                delete pageResult._discoveredLinks;
+                allResults.push(pageResult);
+              } catch (err) {
+                if (!opts.jsonOnly) spinner.warn(`Skipping ${pageUrl}: ${String(err?.message || err).slice(0, 80)}`);
+              }
+            }
+
+            spinner.stop();
+            result = mergeResults(allResults);
+          }
+
+          if (!hasExplicitPaths && !opts.sitemap && !isAutoCrawl) {
             delete result._discoveredLinks;
           }
 

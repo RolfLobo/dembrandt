@@ -49,6 +49,17 @@ Pair with **[dembrandt-skills](https://github.com/dembrandt/dembrandt-skills)** 
 npx skills add dembrandt/dembrandt-skills
 ```
 
+## Dembrandt App (Beta)
+
+The **[Dembrandt App](https://www.dembrandt.com/app)** is the new home for your design system audits. It replaces the legacy Local UI with a more powerful, web-based management experience.
+
+* **Visual Management:** View typography, color palettes, and spacing scales in a clean, human-readable dashboard.
+* **Privacy-First:** No login required. No analytics. Your data is stored locally in your browser and is never sent to our servers.
+* **CLI Integration:** Simply run your extraction with `--save-output` and open the resulting JSON in the App for deep analysis.
+* **AI-Ready:** Copy tokens directly into your agentic workflows (Cursor, Claude, etc.) with one click.
+* **Public Beta:** More best-in-class features will be added to dembrandt App in upcoming weeks.
+
+
 ## What to expect from extraction?
 
 - Colors (semantic, palette, CSS variables, gradients)

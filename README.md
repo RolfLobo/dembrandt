@@ -51,14 +51,13 @@ npx skills add dembrandt/dembrandt-skills
 
 ## Dembrandt App (Beta)
 
-**[dembrandt.com/app](https://www.dembrandt.com/app)** — load extractions, track token drift, and compare snapshots over time.
+Load extractions, track token drift, and compare snapshots. **[dembrandt.com/app](https://www.dembrandt.com/app)**
 
-* **Token drift tracking:** Pin any snapshot as your baseline. Every new extraction is automatically compared against it — colors, typography, spacing, radius, shadows.
-* **Visual diff:** See exactly what changed as a report with color swatches, before/after values, and delta scores.
-* **Snapshot timeline:** GitHub-style calendar showing your extraction history per domain.
-* **Copy tokens instantly:** Paste individual values straight into Copilot, Claude, or Cursor.
-* **Privacy-first:** No login required. Your data lives in your browser and is never sent to any server.
-* **Desktop-first:** Designed for designers and developers working at a desk.
+* **Drift tracking.** Pin a snapshot as your baseline. Run another extraction later. Get a visual report of what changed.
+* **Visual diff.** Color swatches, before/after values, delta scores per category.
+* **Snapshot history.** GitHub-style calendar per domain.
+* **Copy tokens.** Paste values straight into Copilot, Claude, or Cursor.
+* **No login.** Your data stays in the browser, nothing is sent to any server.
 
 
 ## What to expect from extraction?

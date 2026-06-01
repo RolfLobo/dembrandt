@@ -59,6 +59,9 @@ Load extractions, track token drift, and compare snapshots. **[dembrandt.com/app
 * **Copy tokens.** Paste values straight into Copilot, Claude, or Cursor.
 * **No login.** Your data stays in the browser, nothing is sent to any server.
 
+## Recipes
+
+**[dembrandt.com/recipes](https://www.dembrandt.com/recipes)** — 38 ready-to-run workflows. Copy a command, paste a prompt, get a result. Covers competitor benchmarking, WCAG audits, CI/CD drift detection, Figma token push, and agentic design system builds. Filterable by role.
 
 ## What to expect from extraction?
 

@@ -50,7 +50,7 @@ function textColor(bgHex) {
 
 /** Sort colors by hue for visual grouping */
 function sortByHue(colors) {
-  return [...colors].sort((a, b) => {
+  return [...colors].sort((a: any, b: any) => {
     const aRgb = hexToRgb(a.hex);
     const bRgb = hexToRgb(b.hex);
     if (!aRgb || !bRgb) return 0;
@@ -197,7 +197,7 @@ function buildHTML(data) {
     if (!data.logo) return false;
     const url = (data.logo.url || '').toLowerCase();
     // Filename hints: "white", "valkoinen", "light", "neg", "inverse"
-    if (/white|valkoinen|light|negat|inver|\_w\.|\_w\-|[\-_]neg/i.test(url)) return true;
+    if (/white|valkoinen|light|negat|inver|_w\.|_w-|[-_]neg/i.test(url)) return true;
     // If the logo's actual background is dark, the logo itself is likely light
     if (data.logo.background) {
       const bgH = hex(data.logo.background);
@@ -730,7 +730,6 @@ ${logoUrl ? (() => {
     return (max - min) > 30 && lum > 0.15 && lum < 0.85;
   })?.hex || '#336699';
 
-  const brandFg = textColor(brandColorHex);
 
   const logoW = data.logo?.width || 200;
   const logoH = data.logo?.height || 60;
@@ -1012,7 +1011,7 @@ function getLogoImageUrl(data) {
 
   const sized = data.favicons
     .filter(f => f.sizes && f.type !== 'og:image' && f.type !== 'twitter:image')
-    .sort((a, b) => {
+    .sort((a: any, b: any) => {
       const aSize = parseInt(a.sizes) || 0;
       const bSize = parseInt(b.sizes) || 0;
       return bSize - aSize;
@@ -1045,7 +1044,7 @@ function gatherColors(colors) {
 
   // 1. Semantic colors are the most reliable brand signals
   if (colors.semantic) {
-    for (const [role, color] of Object.entries(colors.semantic)) {
+    for (const [role, color] of (Object.entries(colors.semantic) as any[])) {
       if (color) add(color, role, 'high', 'semantic');
     }
   }
@@ -1059,7 +1058,7 @@ function gatherColors(colors) {
 
   // 3. CSS variable colors
   if (colors.cssVariables) {
-    for (const [varName, varData] of Object.entries(colors.cssVariables)) {
+    for (const [_varName, varData] of (Object.entries(colors.cssVariables) as any[])) {
       const val = typeof varData === 'string' ? varData : varData.value;
       if (val) add(val, '', 'high', 'css-var');
     }
@@ -1092,7 +1091,7 @@ function gatherFonts(typography) {
 
   return Array.from(families.values()).map(f => ({
     ...f,
-    weights: Array.from(f.weights).sort((a, b) => a - b)
+    weights: Array.from(f.weights).sort((a: any, b: any) => a - b)
   }));
 }
 

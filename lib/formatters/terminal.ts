@@ -1,3 +1,4 @@
+import type { BrandingResult } from '../types.js';
 /**
  * Terminal Display Formatter
  *
@@ -25,7 +26,7 @@ function terminalLink(url, text = url) {
  * Main display function - outputs formatted extraction results to terminal
  * @param {Object} data - Extraction results from extractBranding()
  */
-export function displayResults(data) {
+export function displayResults(data: BrandingResult) {
   console.log('\n' + chalk.bold.cyan('🎨 Brand Extraction'));
   console.log(chalk.dim('│'));
   console.log(chalk.dim('├─') + ' ' + chalk.blue(terminalLink(data.url)));
@@ -133,7 +134,7 @@ function displayColors(colors) {
 
   // Add semantic colors
   if (colors.semantic) {
-    Object.entries(colors.semantic)
+    (Object.entries(colors.semantic) as any[])
       .filter(([_, color]) => color && color !== 'rgba(0, 0, 0, 0)' && color !== 'transparent')
       .forEach(([role, color]) => {
         const formats = normalizeColorFormat(color);
@@ -153,7 +154,7 @@ function displayColors(colors) {
   // Add CSS variables
   if (colors.cssVariables) {
     const limit = 15;
-    Object.entries(colors.cssVariables).slice(0, limit).forEach(([name, varData]) => {
+    (Object.entries(colors.cssVariables) as any[]).slice(0, limit).forEach(([name, varData]) => {
       try {
         // Handle both old format (string) and new format (object with value, lch, oklch)
         const colorValue = typeof varData === 'string' ? varData : varData.value;
@@ -229,7 +230,7 @@ function displayColors(colors) {
 
   // Display each color on a single line: swatch, hex, role, rgb, oklch.
   // lch is omitted here for compactness but remains in JSON output.
-  uniqueColors.forEach(({ hex, rgb, oklch, label, confidence, role, onColor, hover }, index) => {
+  uniqueColors.forEach(({ hex, rgb, label, confidence, role, onColor, hover }, index) => {
     const isLast = index === uniqueColors.length - 1;
     const branch = isLast ? '└─' : '├─';
 
@@ -325,7 +326,7 @@ function displayTypography(typography) {
       const fontBranch = isFontLast ? '└─' : '├─';
 
       const sizeTokens = [...data.sizeContexts.entries()]
-        .sort((a, b) => b[0] - a[0])
+        .sort((a: any, b: any) => b[0] - a[0])
         .map(([px, ctx]) => ctx ? `${px}px ${chalk.dim(`(${ctx})`)}` : `${px}px`);
       const sizeList = sizeTokens.length
         ? ' ' + chalk.dim('[ ') + sizeTokens.join(', ') + chalk.dim(' ]')
@@ -333,7 +334,7 @@ function displayTypography(typography) {
 
       console.log(chalk.dim(`│  ${fontBranch}`) + ' ' + chalk.bold(family) + sizeList);
 
-      const weights = [...data.weights].sort((a, b) => a - b);
+      const weights = [...data.weights].sort((a: any, b: any) => a - b);
       if (weights.length) {
         const indent = isFontLast ? '   ' : '│  ';
         console.log(chalk.dim(`│  ${indent}└─`) + ' ' + chalk.dim('Weights: ') + weights.join(', '));
@@ -430,7 +431,7 @@ function displayShadows(shadows) {
   if (highConfShadows.length === 0) return;
 
   // Sort by confidence first (high > medium), then by count
-  const sorted = highConfShadows.sort((a, b) => {
+  const sorted = highConfShadows.sort((a: any, b: any) => {
     const confOrder = { 'high': 2, 'medium': 1 };
     const confDiff = (confOrder[b.confidence] || 0) - (confOrder[a.confidence] || 0);
     if (confDiff !== 0) return confDiff;
@@ -462,7 +463,7 @@ function displayGradients(gradients) {
       const m = c && c.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
       return m ? `#${parseInt(m[1]).toString(16).padStart(2,'0')}${parseInt(m[2]).toString(16).padStart(2,'0')}${parseInt(m[3]).toString(16).padStart(2,'0')}` : null;
     }).filter(Boolean))];
-    const stops = uniqueStops.slice(0, 5).map(hex => chalk.bgHex(hex)('  ')).join(' ');
+    const stops = uniqueStops.slice(0, 5).map((hex: any) => chalk.bgHex(hex)('  ')).join(' ');
     const countLabel = g.count > 1 ? chalk.dim(` ×${g.count}`) : '';
     console.log(chalk.dim(`│  ${branch}`) + ' ' + typeLabel + (stops || chalk.dim(g.gradient.slice(0, 50) + '…')) + countLabel);
   });
@@ -856,7 +857,7 @@ function displayBreakpoints(breakpoints) {
   // Sort from larger to smaller, filtering out invalid entries
   const sorted = [...breakpoints]
     .filter(bp => bp.px && !isNaN(parseFloat(bp.px)))
-    .sort((a, b) => {
+    .sort((a: any, b: any) => {
       const aVal = parseFloat(a.px);
       const bVal = parseFloat(b.px);
       return bVal - aVal;
@@ -994,7 +995,7 @@ function displayMotion(motion) {
   }
 
   // Per-context profiles
-  const ctxEntries = Object.entries(motion.contexts || {}).filter(([, v]) => v.count > 0);
+  const ctxEntries = (Object.entries(motion.contexts || {}) as any[]).filter(([, v]) => v.count > 0);
   if (ctxEntries.length > 0) {
     console.log(chalk.dim('│  ├─') + ' ' + chalk.dim('By context'));
     ctxEntries.forEach(([ctx, v], i) => {

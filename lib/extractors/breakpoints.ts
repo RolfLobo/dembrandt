@@ -1,10 +1,10 @@
 export async function extractBreakpoints(page) {
   return await page.evaluate(() => {
-    const breakpoints = new Set();
+    const breakpoints = new Set<number>();
 
     for (const sheet of document.styleSheets) {
       try {
-        for (const rule of sheet.cssRules || []) {
+        for (const rule of (sheet.cssRules || []) as any) {
           if (rule.media) {
             const match = rule.media.mediaText.match(/(\d+)px/g);
             if (match) match.forEach((m) => breakpoints.add(parseInt(m)));
@@ -65,7 +65,7 @@ export async function detectFrameworks(page) {
 
     function hasResource(pattern) {
       const links = Array.from(document.querySelectorAll('link[href], script[src]'));
-      return links.some(el => pattern.test(el.href || el.src));
+      return links.some((el: any) => pattern.test(el.href || el.src));
     }
 
     // Tailwind CSS
@@ -200,7 +200,7 @@ export async function extractGradients(page) {
   return await page.evaluate(() => {
     const seen = new Map();
 
-    const els = document.querySelectorAll('*');
+    const els = document.querySelectorAll('*') as any;
     let checked = 0;
     for (const el of els) {
       if (checked++ > 2000) break;
@@ -245,7 +245,7 @@ export async function extractGradients(page) {
     }
 
     return Array.from(seen.values())
-      .sort((a, b) => b.count - a.count)
+      .sort((a: any, b: any) => b.count - a.count)
       .slice(0, 20);
   });
 }
@@ -302,7 +302,7 @@ export async function extractMotion(page) {
     const globalEasings = new Map();
     const globalAnimations = new Map();
 
-    const els = document.querySelectorAll('*');
+    const els = document.querySelectorAll('*') as any;
     let checked = 0;
     for (const el of els) {
       if (checked++ > 3000) break;
@@ -352,12 +352,12 @@ export async function extractMotion(page) {
     }
 
     // serialize
-    const serializeCtx = (cx) => ({
+    const serializeCtx = (cx: any) => ({
       count: cx.count,
-      durations: Array.from(cx.durations.values()).sort((a, b) => b.count - a.count).slice(0, 3).map(d => d.value),
-      easing: Array.from(cx.easings.values()).sort((a, b) => b.count - a.count)[0]?.value || null,
-      easingType: Array.from(cx.easings.values()).sort((a, b) => b.count - a.count)[0]?.type || null,
-      props: Array.from(cx.props.values()).sort((a, b) => b.count - a.count).slice(0, 4).map(p => p.value),
+      durations: Array.from(cx.durations.values()).sort((a: any, b: any) => b.count - a.count).slice(0, 3).map((d: any) => d.value),
+      easing: (Array.from(cx.easings.values()).sort((a: any, b: any) => b.count - a.count)[0] as any)?.value || null,
+      easingType: (Array.from(cx.easings.values()).sort((a: any, b: any) => b.count - a.count)[0] as any)?.type || null,
+      props: Array.from(cx.props.values()).sort((a: any, b: any) => b.count - a.count).slice(0, 4).map((p: any) => p.value),
     });
 
     const ctxOut = {};
@@ -365,8 +365,8 @@ export async function extractMotion(page) {
 
     return {
       durations: Array.from(globalDurations.values()).sort((a, b) => a.ms - b.ms),
-      easings: Array.from(globalEasings.values()).sort((a, b) => b.count - a.count).slice(0, 8),
-      animations: Array.from(globalAnimations.values()).sort((a, b) => b.count - a.count).slice(0, 8).map(a => ({ ...a, contexts: Array.from(a.contexts) })),
+      easings: Array.from(globalEasings.values()).sort((a: any, b: any) => b.count - a.count).slice(0, 8),
+      animations: Array.from(globalAnimations.values()).sort((a: any, b: any) => b.count - a.count).slice(0, 8).map(a => ({ ...a, contexts: Array.from(a.contexts) })),
       contexts: ctxOut,
     };
   });
@@ -385,7 +385,7 @@ export async function extractMotion(page) {
         });
         if (!visible) continue;
 
-        const before = await el.evaluate(e => {
+        const before: any = await el.evaluate(e => {
           const s = getComputedStyle(e);
           return { transform: s.transform, opacity: s.opacity, bg: s.backgroundColor, color: s.color, tag: e.tagName.toLowerCase(), text: (e.textContent || '').trim().slice(0, 30) };
         });
@@ -393,14 +393,14 @@ export async function extractMotion(page) {
         await el.hover({ timeout: 800 }).catch(() => {});
         await page.waitForTimeout(120);
 
-        const after = await el.evaluate(e => {
+        const after: any = await el.evaluate(e => {
           const s = getComputedStyle(e);
           return { transform: s.transform, opacity: s.opacity, bg: s.backgroundColor, color: s.color };
         }).catch(() => null);
 
         if (!after) continue;
 
-        const delta = {};
+        const delta: any = {};
         if (after.transform !== before.transform && after.transform !== 'none') delta.transform = after.transform;
         if (after.opacity !== before.opacity) delta.opacity = { from: before.opacity, to: after.opacity };
         if (after.bg !== before.bg) delta.background = { from: before.bg, to: after.bg };

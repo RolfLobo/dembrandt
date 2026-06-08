@@ -8,8 +8,8 @@ import { extractSpacing, extractBorderRadius, extractBorders, extractShadows } f
 import { extractButtonStyles, extractInputStyles, extractLinkStyles, extractBadgeStyles } from './components.js';
 import { extractBreakpoints, detectIconSystem, detectFrameworks, extractGradients, extractMotion } from './breakpoints.js';
 import { extractWcagPairs } from './colors.js';
-
-/** @typedef {import('../types.js').BrandingResult} BrandingResult */
+import { SCHEMA_VERSION } from '../version.js';
+import type { ExtractOptions, BrandingResult, Spinner } from '../types.js';
 
 // Gaussian noise via Box-Muller
 function gaussian(mean = 0, std = 1) {
@@ -43,6 +43,33 @@ function velocityProfile(t, overshootProb = 0.3) {
 
 // Sleep helper
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+/**
+ * Adaptive readiness: resolve as soon as the page is actually settled — network
+ * quiet, web fonts loaded, and the DOM done mutating — instead of always waiting
+ * a fixed cap. Falls back to the cap on any failure, so the worst case matches a
+ * fixed wait while typical pages finish in a fraction of the time. Every error
+ * is swallowed: readiness is best-effort and must never abort extraction.
+ */
+async function waitForSettled(page, capMs, quietMs = 500) {
+  const start = Date.now();
+  try { await page.waitForLoadState("networkidle", { timeout: capMs }); } catch {}
+  try { await page.evaluate(() => document.fonts?.ready ?? null); } catch {}
+  const remaining = Math.max(250, capMs - (Date.now() - start));
+  try {
+    await page.evaluate(({ quietMs, remaining }) => new Promise<void>((resolve) => {
+      const target = document.body || document.documentElement;
+      if (!target) return resolve();
+      let quiet;
+      const finish = () => { try { obs.disconnect(); } catch {} resolve(); };
+      const obs = new MutationObserver(() => { clearTimeout(quiet); quiet = setTimeout(finish, quietMs); });
+      obs.observe(target, { childList: true, subtree: true, attributes: true, characterData: true });
+      quiet = setTimeout(finish, quietMs);       // already quiet -> resolve after one window
+      setTimeout(finish, remaining);             // hard cap
+    }), { quietMs, remaining });
+  } catch {}
+  return Date.now() - start;
+}
 
 async function simulateHumanMouse(page) {
   const vw = 1920, vh = 1080;
@@ -102,9 +129,6 @@ async function simulateHumanMouse(page) {
     // Aborted movement: pick intermediate abort point
     const abortT = willAbort ? 0.25 + Math.random() * 0.45 : 1.0;
     if (willAbort) {
-      const abortZone = pickZone();
-      const finalTx = abortZone.x[0] + Math.random() * (abortZone.x[1] - abortZone.x[0]);
-      const finalTy = abortZone.y[0] + Math.random() * (abortZone.y[1] - abortZone.y[0]);
       // Abort destination is partway toward original target, then we'll redirect
       tx = cx + (tx - cx) * abortT;
       ty = cy + (ty - cy) * abortT;
@@ -238,10 +262,15 @@ async function simulateHumanMouse(page) {
  * @param {{ slow?: boolean, darkMode?: boolean, mobile?: boolean, wcag?: boolean, screenshotPath?: string, discoverLinks?: number|null, navigationTimeout?: number, stealth?: boolean, userAgent?: string, locale?: string, timezoneId?: string, acceptLanguage?: string, screenSize?: string }} [options]
  * @returns {Promise<BrandingResult>}
  */
-export async function extractBranding(url, spinner, browser, options = {}) {
+export async function extractBranding(url: string, spinner: Spinner, browser: any, options: ExtractOptions = {}): Promise<BrandingResult> {
   const timeoutMultiplier = options.slow ? 3 : 1;
   const timeouts = [];
   const degraded = []; // post-extraction stages that failed but did not abort the run
+
+  // Progress lines print only in verbose mode (the main `dembrandt <url>`
+  // command). Report commands (drift/init/conformance) pass no verbose flag and
+  // stay clean. Warnings are NOT routed through this — they always print.
+  const log = (...args) => { if (options.verbose) console.log(...args); };
 
   spinner.text = "Creating browser context...";
 
@@ -253,13 +282,33 @@ export async function extractBranding(url, spinner, browser, options = {}) {
     ? options.screenSize.split('x').map(Number)
     : [1920, 1080];
 
-  const contextOptions = {
+  // Parse "Name=value; Name2=value2" cookie string into Playwright format
+  const parsedCookies = options.cookie
+    ? options.cookie.split(";").map((c) => c.trim()).filter(Boolean).map((c) => {
+        const eq = c.indexOf("=");
+        return {
+          name: c.slice(0, eq).trim(),
+          value: c.slice(eq + 1).trim(),
+          url,
+        };
+      })
+    : [];
+
+  const extraHeaders = { "Accept-Language": acceptLanguage };
+  if (options.header) {
+    const colon = options.header.indexOf(":");
+    if (colon > -1) {
+      extraHeaders[options.header.slice(0, colon).trim()] = options.header.slice(colon + 1).trim();
+    }
+  }
+
+  const contextOptions: any = {
     viewport: { width: screenW, height: screenH },
     screen: { width: screenW, height: screenH },
     userAgent: options.userAgent || "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36",
     locale,
     timezoneId,
-    extraHTTPHeaders: { "Accept-Language": acceptLanguage },
+    extraHTTPHeaders: extraHeaders,
     colorScheme: "light",
   };
 
@@ -268,6 +317,10 @@ export async function extractBranding(url, spinner, browser, options = {}) {
   }
 
   const context = await browser.newContext(contextOptions);
+
+  if (parsedCookies.length > 0) {
+    await context.addCookies(parsedCookies);
+  }
 
   if (options.stealth) {
     const stealthLocale = locale;
@@ -313,7 +366,7 @@ export async function extractBranding(url, spinner, browser, options = {}) {
       document.hasFocus = () => true;
 
       // connection: expose a plausible NetworkInformation object
-      if (!navigator.connection) {
+      if (!(navigator as any).connection) {
         Object.defineProperty(navigator, 'connection', {
           get: () => ({ effectiveType: '4g', rtt: 50, downlink: 10, saveData: false }),
         });
@@ -324,18 +377,18 @@ export async function extractBranding(url, spinner, browser, options = {}) {
         Object.defineProperty(history, 'length', { get: () => 2 + Math.floor(Math.random() * 4) });
       } catch {}
 
-      window.chrome = { runtime: {}, loadTimes: () => {}, csi: () => {}, app: {} };
-      delete navigator.__proto__.webdriver;
-      delete window.cdc_adoQpoasnfa76pfcZLmcfl_Array;
-      delete window.cdc_adoQpoasnfa76pfcZLmcfl_Promise;
-      delete window.cdc_adoQpoasnfa76pfcZLmcfl_Symbol;
+      (window as any).chrome = { runtime: {}, loadTimes: () => {}, csi: () => {}, app: {} };
+      delete (navigator as any).__proto__.webdriver;
+      delete (window as any).cdc_adoQpoasnfa76pfcZLmcfl_Array;
+      delete (window as any).cdc_adoQpoasnfa76pfcZLmcfl_Promise;
+      delete (window as any).cdc_adoQpoasnfa76pfcZLmcfl_Symbol;
     }, { loc: stealthLocale, sw: screenW, sh: screenH });
   }
 
   const page = await context.newPage();
 
   // Track font requests to identify self-hosted custom fonts
-  const fontRequests = new Set();
+  const fontRequests = new Set<string>();
   const thirdPartyFontHosts = ['fonts.googleapis.com', 'fonts.gstatic.com', 'typekit.net',
     'adobe.com', 'fonts.com', 'cloud.typography.com', 'fast.fonts.net', 'use.fontawesome.com',
     'kit.fontawesome.com', 'pro.fontawesome.com'];
@@ -383,7 +436,7 @@ export async function extractBranding(url, spinner, browser, options = {}) {
         }
 
         spinner.stop();
-        console.log(color.success(`  ✓ Page loaded`));
+        log(color.success(`  ✓ Page loaded`));
 
         spinner.start("Waiting for body content to render...");
         try {
@@ -392,7 +445,7 @@ export async function extractBranding(url, spinner, browser, options = {}) {
             { timeout: (options.navigationTimeout || 20000) * timeoutMultiplier }
           );
           spinner.stop();
-          console.log(color.success(`  ✓ Body content rendered`));
+          log(color.success(`  ✓ Body content rendered`));
         } catch {
           spinner.stop();
           console.log(color.warning(`  ! Body content timeout (continuing)`));
@@ -400,10 +453,9 @@ export async function extractBranding(url, spinner, browser, options = {}) {
         }
 
         spinner.start("Waiting for SPA hydration...");
-        const hydrationTime = 8000 * timeoutMultiplier;
-        await page.waitForTimeout(hydrationTime);
+        const elapsed = await waitForSettled(page, 8000 * timeoutMultiplier);
         spinner.stop();
-        console.log(color.success(`  ✓ Hydration complete (${hydrationTime / 1000}s)`));
+        log(color.success(`  ✓ Hydration settled (${(elapsed / 1000).toFixed(1)}s)`));
 
         spinner.start("Waiting for main content...");
         try {
@@ -411,7 +463,7 @@ export async function extractBranding(url, spinner, browser, options = {}) {
             timeout: 10000 * timeoutMultiplier,
           });
           spinner.stop();
-          console.log(color.success(`  ✓ Main content detected`));
+          log(color.success(`  ✓ Main content detected`));
         } catch {
           spinner.stop();
           console.log(color.warning(`  ! Main content selector timeout (continuing)`));
@@ -435,7 +487,7 @@ export async function extractBranding(url, spinner, browser, options = {}) {
           window.scrollTo(0, 0);
         });
         spinner.stop();
-        console.log(color.success(`  ✓ Full page scrolled (lazy content triggered)`));
+        log(color.success(`  ✓ Full page scrolled (lazy content triggered)`));
 
         spinner.start("Dismissing cookie consent banners...");
         const dismissed = await page.evaluate(async () => {
@@ -461,7 +513,7 @@ export async function extractBranding(url, spinner, browser, options = {}) {
           ];
           for (const sel of selectors) {
             try {
-              const el = document.querySelector(sel);
+              const el = document.querySelector(sel) as HTMLElement | null;
               if (el && el.offsetParent !== null) {
                 el.click();
                 return sel;
@@ -472,24 +524,23 @@ export async function extractBranding(url, spinner, browser, options = {}) {
         });
         spinner.stop();
         if (dismissed) {
-          console.log(color.success(`  ✓ Cookie banner dismissed (${dismissed})`));
+          log(color.success(`  ✓ Cookie banner dismissed (${dismissed})`));
           await page.waitForTimeout(600);
         } else {
           console.log(color.info(`  i No cookie banner detected`));
         }
 
         spinner.start("Final content stabilization...");
-        const stabilizationTime = 4000 * timeoutMultiplier;
-        await page.waitForTimeout(stabilizationTime);
+        await waitForSettled(page, 4000 * timeoutMultiplier, 400);
         spinner.stop();
-        console.log(color.success(`  ✓ Page fully loaded and stable`));
+        log(color.success(`  ✓ Page fully loaded and stable`));
 
         spinner.start("Validating page content...");
         const contentLength = await page.evaluate(() => document.body.textContent.length);
         spinner.stop();
 
         if (contentLength > 100) {
-          console.log(color.success(`  ✓ Content validated: ${contentLength} chars`));
+          log(color.success(`  ✓ Content validated: ${contentLength} chars`));
           break;
         }
 
@@ -510,7 +561,32 @@ export async function extractBranding(url, spinner, browser, options = {}) {
     }
 
     spinner.stop();
-    console.log(color.info("\n  Extracting design tokens...\n"));
+
+    // Determinism: drive every animation and transition to its final frame, then
+    // hold it. Animated elements (cycling hero swatches, fade-ins) otherwise
+    // report a different computed value on each run, producing phantom drift.
+    // 1ms duration + iteration-count:1 + fill-mode:forwards snaps finite and
+    // infinite animations to a stable end state. Opt out with keepAnimations.
+    if (!options.keepAnimations) {
+      try {
+        await page.addStyleTag({
+          content: `*, *::before, *::after {
+            animation-duration: 1ms !important;
+            animation-delay: 0ms !important;
+            animation-iteration-count: 1 !important;
+            animation-fill-mode: forwards !important;
+            transition-duration: 1ms !important;
+            transition-delay: 0ms !important;
+            scroll-behavior: auto !important;
+          }`,
+        });
+        await page.waitForTimeout(200 * timeoutMultiplier);
+      } catch {
+        // best-effort; never block extraction on animation freezing
+      }
+    }
+
+    log(color.info("\n  Extracting design tokens...\n"));
 
     spinner.start("Analyzing design system (17 parallel tasks)...");
     const [
@@ -615,7 +691,7 @@ export async function extractBranding(url, spinner, browser, options = {}) {
         manifest.backgroundColor && `bg: ${manifest.backgroundColor}`,
         manifest.name && `name: "${manifest.name}"`,
       ].filter(Boolean);
-      console.log(color.success(`  ✓ Manifest: ${parts.join(', ')}`));
+      log(color.success(`  ✓ Manifest: ${parts.join(', ')}`));
     }
     } catch (e) { degraded.push('manifest'); console.log(color.warning('  ! Manifest injection: failed (continuing)')); }
     console.log(colors.palette.length > 0 ? color.success(`  ✓ Colors: ${colors.palette.length} found`) : color.warning(`  ! Colors: 0 found`));
@@ -872,8 +948,8 @@ export async function extractBranding(url, spinner, browser, options = {}) {
       links.push(...darkModeLinks.map((link) => ({ ...link, source: "dark-mode" })));
 
       spinner.stop();
-      console.log(color.success(`  ✓ Dark mode: +${darkModeColors.palette.length} colors`));
-      } catch (e) { spinner.stop(); degraded.push('dark-mode'); console.log(color.warning('  ! Dark mode: failed (continuing)')); }
+      log(color.success(`  ✓ Dark mode: +${darkModeColors.palette.length} colors`));
+      } catch (e) { spinner.stop(); degraded.push('dark-mode'); log(color.warning('  ! Dark mode: failed (continuing)')); }
     }
 
     // Mobile viewport
@@ -892,13 +968,13 @@ export async function extractBranding(url, spinner, browser, options = {}) {
       colors.palette = mergedPalette;
 
       spinner.stop();
-      console.log(color.success(`  ✓ Mobile: +${mobileColors.palette.length} colors`));
-      } catch (e) { spinner.stop(); degraded.push('mobile'); console.log(color.warning('  ! Mobile: failed (continuing)')); }
+      log(color.success(`  ✓ Mobile: +${mobileColors.palette.length} colors`));
+      } catch (e) { spinner.stop(); degraded.push('mobile'); log(color.warning('  ! Mobile: failed (continuing)')); }
     }
 
     spinner.stop();
     console.log();
-    console.log(color.success.bold("✓ Brand extraction complete!"));
+    log(color.success.bold("✓ Brand extraction complete!"));
 
     if (timeouts.length > 0 && !options.slow) {
       console.log();
@@ -948,18 +1024,19 @@ export async function extractBranding(url, spinner, browser, options = {}) {
         const staticPassing = wcag.filter(p => !p.source && p.aa).length;
         const staticTotal = wcag.filter(p => !p.source).length;
         const statesFailing = wcag.filter(p => p.source === 'state' && !p.aa).length;
-        console.log(color.success(`  ✓ WCAG: ${staticPassing}/${staticTotal} pairs pass AA`) +
+        log(color.success(`  ✓ WCAG: ${staticPassing}/${staticTotal} pairs pass AA`) +
           (statesFailing ? color.warning(` · ${statesFailing} state pair(s) fail`) : ''));
       } catch {
         spinner.stop();
       }
     }
 
-    const result = {
+    const result: any = {
       url: page.url(),
       extractedAt: new Date().toISOString(),
       meta: {
         dembrandtVersion: options._version || null,
+        schemaVersion: SCHEMA_VERSION,
         flags: {
           ...(options.stealth && { stealth: true }),
           ...(options.darkMode && { darkMode: true }),

@@ -61,7 +61,7 @@ export async function extractColors(page) {
     }
 
     const colorMap = new Map();
-    const semanticColors = {};
+    const semanticColors: any = {};
     const cssVariables = {};
 
     const styles = getComputedStyle(document.documentElement);

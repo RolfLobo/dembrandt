@@ -12,7 +12,7 @@ export async function extractTypography(page) {
       .querySelectorAll(
         'link[href*="fonts.googleapis.com"], link[href*="fonts.gstatic.com"]'
       )
-      .forEach((l) => {
+      .forEach((l: any) => {
         const matches = l.href.match(/family=([^&:%]+)/g) || [];
         matches.forEach((m) => {
           const name = decodeURIComponent(
@@ -70,7 +70,7 @@ export async function extractTypography(page) {
         try {
           for (const rule of sheet.cssRules || []) {
             if (rule instanceof CSSFontFaceRule) {
-              const display = rule.style.fontDisplay;
+              const display = (rule.style as any).fontDisplay;
               if (display && display !== 'auto') {
                 fontDisplay = display;
                 break;
@@ -81,7 +81,7 @@ export async function extractTypography(page) {
         if (fontDisplay) break;
       }
     } catch (e) {}
-    sources.fontDisplay = fontDisplay;
+    (sources as any).fontDisplay = fontDisplay;
 
     const els = document.querySelectorAll(`
       h1,h2,h3,h4,h5,h6,p,span,a,button,[role="button"],.btn,.button,
@@ -105,7 +105,7 @@ export async function extractTypography(page) {
       const fontFeatures = s.fontFeatureSettings !== 'normal' ? s.fontFeatureSettings : null;
 
       let context = "body";
-      const className = typeof el.className === 'string' ? el.className : (el.className.baseVal || '');
+      const className = typeof el.className === 'string' ? el.className : ((el as any).className.baseVal || '');
       const headingMatch = el.tagName.match(/^H([1-6])$/);
       if (
         el.tagName === "BUTTON" ||
@@ -113,7 +113,7 @@ export async function extractTypography(page) {
         className.includes("btn")
       ) {
         context = "ui";
-      } else if (el.tagName === "A" && el.href) {
+      } else if (el.tagName === "A" && (el as any).href) {
         context = "link";
       } else if (headingMatch) {
         const level = parseInt(headingMatch[1]);

@@ -10,7 +10,7 @@ import { convertColor, deltaE } from '../colors.js';
  * @param {object} result - dembrandt extraction result
  * @returns {string} DESIGN.md content
  */
-export function generateDesignMd(result) {
+export function generateDesignMd(result: any) {
   const domain = getDomain(result);
   const name = getName(result, domain);
   const colorRoles = buildColorRoles(result);
@@ -87,9 +87,9 @@ function buildColorRoles(result) {
   }
   for (const link of result.components?.links ?? []) addCandidate(link.color, 'link');
 
-  const roles = {};
-  if (semantic && Object.values(semantic).some(Boolean)) {
-    for (const [role, val] of Object.entries(semantic)) {
+  const roles: Record<string, any> = {};
+  if (semantic && (Object.values(semantic) as any[]).some(Boolean)) {
+    for (const [role, val] of (Object.entries(semantic) as any[])) {
       const hex = toHex(typeof val === 'string' ? val : val?.color);
       if (hex) roles[sanitizeTokenName(role)] = hex;
     }
@@ -108,7 +108,7 @@ function buildColorRoles(result) {
         ...c,
         rank: c.sat * 100 + (paletteConf.get(c.hex) ?? 0),
       }))
-      .sort((a, b) => b.rank - a.rank);
+      .sort((a: any, b: any) => b.rank - a.rank);
 
     const deduped = [];
     for (const c of ranked) {
@@ -116,9 +116,9 @@ function buildColorRoles(result) {
       if (!tooClose) deduped.push(c);
     }
 
-    const used = new Set(Object.values(roles).map(h => h?.toLowerCase()));
-    const byRank = [...deduped].sort((a, b) => b.rank - a.rank);
-    const byLum = [...deduped].sort((a, b) => a.lum - b.lum);
+    const used = new Set((Object.values(roles) as any[]).map(h => h?.toLowerCase()));
+    const byRank = [...deduped].sort((a: any, b: any) => b.rank - a.rank);
+    const byLum = [...deduped].sort((a: any, b: any) => a.lum - b.lum);
 
     const pick = (arr) => {
       const c = arr.find(x => !used.has(x.hex.toLowerCase()));
@@ -147,7 +147,7 @@ function buildColorRoles(result) {
 
 function buildTypographyTokens(result) {
   const styles = result.typography?.styles ?? [];
-  const tokens = {};
+  const tokens: Record<string, any> = {};
   const usedNames = new Set();
 
   for (const [index, style] of styles.entries()) {
@@ -180,9 +180,9 @@ function buildSpacingTokens(result) {
     if (value) values.add(value);
   }
 
-  const sorted = [...values].sort((a, b) => parseFloat(a) - parseFloat(b)).slice(0, 8);
+  const sorted = [...values].sort((a: any, b: any) => parseFloat(a) - parseFloat(b)).slice(0, 8);
   const names = ['xs', 'sm', 'md', 'lg', 'xl', 'xxl', 'xxxl', 'xxxxl'];
-  const tokens = {};
+  const tokens: Record<string, any> = {};
 
   if (base) tokens.base = base;
   for (let i = 0; i < sorted.length; i++) {
@@ -198,9 +198,9 @@ function buildRoundedTokens(result) {
   const values = [...new Set(radii
     .map(entry => normalizeRadius(entry.value))
     .filter(Boolean))]
-    .sort((a, b) => parseFloat(a) - parseFloat(b));
+    .sort((a: any, b: any) => parseFloat(a) - parseFloat(b));
 
-  const tokens = {};
+  const tokens: Record<string, any> = {};
   if (values.includes('0px')) tokens.none = '0px';
 
   const nonZero = values.filter(value => value !== '0px' && value !== '9999px').slice(0, 4);
@@ -212,7 +212,7 @@ function buildRoundedTokens(result) {
 }
 
 function buildComponentTokens(result, colorRoles, roundedTokens) {
-  const components = {};
+  const components: Record<string, any> = {};
   const button = (result.components?.buttons ?? [])
     .map(btn => btn.states?.default ?? btn)
     .find(btn => btn.backgroundColor && !isTransparentColor(btn.backgroundColor));
@@ -249,7 +249,7 @@ function buildComponentTokens(result, colorRoles, roundedTokens) {
 
 function buildColorsSection(colorRoles) {
   const lines = ['## Colors'];
-  for (const [role, hex] of Object.entries(colorRoles)) {
+  for (const [role, hex] of (Object.entries(colorRoles) as any[])) {
     lines.push(`- **${titleize(role)}** (${hex}): Observed color token extracted from the site's palette, semantic CSS, or component styles.`);
   }
   return lines.join('\n');
@@ -257,7 +257,7 @@ function buildColorsSection(colorRoles) {
 
 function buildTypographySection(result, typographyTokens) {
   const lines = ['## Typography'];
-  const tokenEntries = Object.entries(typographyTokens).slice(0, 6);
+  const tokenEntries = (Object.entries(typographyTokens) as any[]).slice(0, 6);
 
   for (const [name, token] of tokenEntries) {
     const parts = [token.fontFamily, token.fontSize, humanWeight(token.fontWeight)]
@@ -282,7 +282,7 @@ function buildLayoutSection(result, spacingTokens) {
   }
 
   if (Object.keys(spacingTokens).length) {
-    lines.push(`- **Spacing tokens**: ${Object.entries(spacingTokens).map(([name, value]) => `${name} ${value}`).join(', ')}`);
+    lines.push(`- **Spacing tokens**: ${(Object.entries(spacingTokens) as any[]).map(([name, value]) => `${name} ${value}`).join(', ')}`);
   }
 
   if (breakpoints.length) {
@@ -301,7 +301,7 @@ function buildElevationSection(result) {
 
 function buildShapesSection(roundedTokens) {
   const lines = ['## Shapes'];
-  const rounded = Object.entries(roundedTokens).map(([name, value]) => `${name} ${value}`).join(', ');
+  const rounded = (Object.entries(roundedTokens) as any[]).map(([name, value]) => `${name} ${value}`).join(', ');
   lines.push(`Observed rounded-corner tokens: ${rounded}.`);
   return lines.join('\n');
 }
@@ -346,7 +346,7 @@ function toYaml(value, indent = 0) {
   const pad = '  '.repeat(indent);
   let yaml = '';
 
-  for (const [key, child] of Object.entries(value)) {
+  for (const [key, child] of (Object.entries(value) as any[])) {
     if (child == null) continue;
     if (typeof child === 'object' && !Array.isArray(child)) {
       if (!Object.keys(child).length) continue;
@@ -457,14 +457,14 @@ function normalizePadding(value) {
 function tokenReferenceForColor(raw, colorRoles) {
   const hex = toHex(raw);
   if (!hex) return null;
-  const match = Object.entries(colorRoles).find(([, value]) => value.toLowerCase() === hex.toLowerCase());
+  const match = (Object.entries(colorRoles) as any[]).find(([, value]) => value.toLowerCase() === hex.toLowerCase());
   return match ? `{colors.${match[0]}}` : null;
 }
 
 function tokenReferenceForRadius(raw, roundedTokens) {
   const radius = normalizeRadius(raw);
   if (!radius) return null;
-  const match = Object.entries(roundedTokens).find(([, value]) => value === radius);
+  const match = (Object.entries(roundedTokens) as any[]).find(([, value]) => value === radius);
   return match ? `{rounded.${match[0]}}` : null;
 }
 
@@ -505,11 +505,11 @@ function firstButton(buttons) {
 function firstInput(inputs) {
   if (!inputs) return null;
   if (Array.isArray(inputs)) return inputs[0] ?? null;
-  return inputs.text?.[0] ?? inputs.search?.[0] ?? Object.values(inputs).flat()[0] ?? null;
+  return inputs.text?.[0] ?? inputs.search?.[0] ?? (Object.values(inputs) as any[]).flat()[0] ?? null;
 }
 
 function compactObject(object) {
-  const entries = Object.entries(object).filter(([, value]) => value != null && value !== '');
+  const entries = (Object.entries(object) as any[]).filter(([, value]) => value != null && value !== '');
   return entries.length ? Object.fromEntries(entries) : null;
 }
 

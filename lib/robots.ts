@@ -1,6 +1,23 @@
 const UA = "Dembrandt";
 
-export async function checkRobotsTxt(targetUrl, { timeoutMs = 5000 } = {}) {
+interface RobotsRule {
+  type: "allow" | "disallow";
+  value: string;
+}
+
+interface RobotsGroup {
+  agents: string[];
+  rules: RobotsRule[];
+}
+
+export type RobotsResult =
+  | { status: "unavailable"; robotsUrl: string }
+  | { status: "ok"; robotsUrl: string; allowed: boolean; rule: string | null };
+
+export async function checkRobotsTxt(
+  targetUrl: string,
+  { timeoutMs = 5000 }: { timeoutMs?: number } = {},
+): Promise<RobotsResult> {
   const u = new URL(targetUrl);
   const robotsUrl = `${u.protocol}//${u.host}/robots.txt`;
   const path = u.pathname || "/";
@@ -8,7 +25,7 @@ export async function checkRobotsTxt(targetUrl, { timeoutMs = 5000 } = {}) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
-  let body;
+  let body: string;
   try {
     const res = await fetch(robotsUrl, {
       signal: controller.signal,
@@ -29,9 +46,9 @@ export async function checkRobotsTxt(targetUrl, { timeoutMs = 5000 } = {}) {
   return { status: "ok", robotsUrl, ...decision };
 }
 
-function parseRobots(text) {
-  const groups = [];
-  let current = null;
+function parseRobots(text: string): RobotsGroup[] {
+  const groups: RobotsGroup[] = [];
+  let current: RobotsGroup | null = null;
   let lastWasAgent = false;
 
   for (const raw of text.split(/\r?\n/)) {
@@ -61,7 +78,7 @@ function parseRobots(text) {
   return groups;
 }
 
-function matchGroup(groups, agent) {
+function matchGroup(groups: RobotsGroup[], agent: string): RobotsRule[] | null {
   const wanted = agent.toLowerCase();
   for (const g of groups) {
     if (g.agents.includes(wanted)) return g.rules;
@@ -69,8 +86,12 @@ function matchGroup(groups, agent) {
   return null;
 }
 
-function evaluate(rules, path) {
-  let best = { type: null, length: -1, value: "" };
+function evaluate(rules: RobotsRule[], path: string): { allowed: boolean; rule: string | null } {
+  let best: { type: "allow" | "disallow" | null; length: number; value: string } = {
+    type: null,
+    length: -1,
+    value: "",
+  };
   for (const r of rules) {
     if (!r.value) continue;
     if (!pathMatches(path, r.value)) continue;
@@ -80,7 +101,7 @@ function evaluate(rules, path) {
   return { allowed: true, rule: best.value || null };
 }
 
-function pathMatches(path, pattern) {
+function pathMatches(path: string, pattern: string): boolean {
   const anchored = pattern.endsWith("$");
   const p = anchored ? pattern.slice(0, -1) : pattern;
   const parts = p.split("*");

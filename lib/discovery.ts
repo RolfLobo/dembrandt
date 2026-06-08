@@ -41,7 +41,7 @@ export function scoreUrl(pathname) {
     [/^\/(docs|documentation|developers?|api)/, 15],
     [/^\/(blog|resources|insights|news)/, 10],
   ];
-  for (const [re, boost] of boosts) {
+  for (const [re, boost] of boosts as [RegExp, number][]) {
     if (re.test(lc)) { score += boost; break; }
   }
 

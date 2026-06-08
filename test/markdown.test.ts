@@ -67,11 +67,11 @@ test('generateDesignMd emits Google DESIGN.md front matter and ordered sections'
   });
 
   assert.match(output, /^---\nname: "Example Product"\n/);
-  assert.match(output, /colors:\n  primary: "#1A1C1E"/);
-  assert.match(output, /typography:\n  headline-display:\n    fontFamily: "Public Sans"\n    fontSize: "48px"\n    fontWeight: 600\n    lineHeight: 1.1\n    letterSpacing: "-0.02em"\n    fontFeature: "\\"liga\\" 1, \\"kern\\" 1"/);
-  assert.match(output, /spacing:\n  base: "8px"/);
-  assert.match(output, /rounded:\n  sm: "4px"\n  md: "8px"\n  full: "9999px"/);
-  assert.match(output, /components:\n  button-observed:\n    backgroundColor: "\{colors.primary\}"/);
+  assert.match(output, /colors:\n {2}primary: "#1A1C1E"/);
+  assert.match(output, /typography:\n {2}headline-display:\n {4}fontFamily: "Public Sans"\n {4}fontSize: "48px"\n {4}fontWeight: 600\n {4}lineHeight: 1.1\n {4}letterSpacing: "-0.02em"\n {4}fontFeature: "\\"liga\\" 1, \\"kern\\" 1"/);
+  assert.match(output, /spacing:\n {2}base: "8px"/);
+  assert.match(output, /rounded:\n {2}sm: "4px"\n {2}md: "8px"\n {2}full: "9999px"/);
+  assert.match(output, /components:\n {2}button-observed:\n {4}backgroundColor: "\{colors.primary\}"/);
   assert.doesNotMatch(output, /## Do's and Don'ts/);
 
   const sectionOrder = [
@@ -129,7 +129,7 @@ test('generateDesignMd does not promote transparent colors to opaque tokens', ()
     },
   });
 
-  assert.match(output, /colors:\n  primary: "#0A141E"/);
+  assert.match(output, /colors:\n {2}primary: "#0A141E"/);
   assert.doesNotMatch(output, /#000000|#FF0000|#336699/);
   assert.doesNotMatch(output, /\ncomponents:/);
 });

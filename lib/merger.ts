@@ -69,7 +69,7 @@ function mergeColors(results) {
   }
 
   // CSS variables: union, first occurrence wins
-  const cssVariables = {};
+  const cssVariables: Record<string, any> = {};
   results.forEach(r => {
     const vars = r.colors?.cssVariables || {};
     for (const [k, v] of Object.entries(vars)) {
@@ -143,7 +143,7 @@ function mergeComponentArray(arrays) {
  * Preserves the grouping keys and merges each sub-array independently.
  */
 function mergeComponentGroups(groupObjects) {
-  const grouped = {};
+  const grouped: Record<string, any> = {};
   groupObjects.forEach(obj => {
     if (!obj) return;
     for (const [key, val] of Object.entries(obj)) {
@@ -163,7 +163,7 @@ function mergeComponentGroups(groupObjects) {
     }
   });
 
-  const merged = {};
+  const merged: Record<string, any> = {};
   for (const [key, val] of Object.entries(grouped)) {
     if (Array.isArray(val)) {
       merged[key] = mergeComponentArray(val);
@@ -356,7 +356,7 @@ export function mergeResults(results) {
       ...new Map(
         results.flatMap(r => r.breakpoints || []).map(b => [b.px, b])
       ).values()
-    ].sort((a, b) => parseInt(b.px) - parseInt(a.px)),
+    ].sort((a: any, b: any) => parseInt(b.px) - parseInt(a.px)),
     iconSystem: mergeByName(results, r => r.iconSystem),
     frameworks: mergeByName(results, r => r.frameworks),
     pages: results.map(r => ({ url: r.url, extractedAt: r.extractedAt })),

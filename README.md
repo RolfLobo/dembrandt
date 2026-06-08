@@ -25,7 +25,7 @@ Requires Node.js 18+
 Use Dembrandt as a tool in Claude Code, Cursor, Windsurf, or any MCP-compatible client. Ask your agent to "extract the color palette from example.com" and it calls Dembrandt automatically.
 
 ```bash
-claude mcp add --transport stdio dembrandt -- npx -y dembrandt-mcp
+claude mcp add --transport stdio dembrandt -- npx -y --package dembrandt dembrandt-mcp
 ```
 
 Or add to your project's `.mcp.json`:
@@ -35,7 +35,7 @@ Or add to your project's `.mcp.json`:
   "mcpServers": {
     "dembrandt": {
       "command": "npx",
-      "args": ["-y", "dembrandt-mcp"]
+      "args": ["-y", "--package", "dembrandt", "dembrandt-mcp"]
     }
   }
 }
@@ -57,7 +57,7 @@ Load extractions, track token drift, and compare snapshots. **[dembrandt.com/app
 * **Visual diff.** Color swatches, before/after values, delta scores per category.
 * **Snapshot history.** GitHub-style calendar per domain.
 * **Copy tokens.** Paste values straight into Copilot, Claude, or Cursor.
-* **No login.** Your data stays in the browser, nothing is sent to any server.
+* **No login.** Your data stays in the browser. Drift is computed locally — nothing is sent to any server.
 
 ## Recipes
 
@@ -145,7 +145,7 @@ dembrandt example.com --browser=firefox --save-output --dtcg
 Firefox browser is installed automatically with `npm install`. If you need to install manually:
 
 ```bash
-npx playwright install firefox
+npx playwright@$(node -p "require('playwright-core/package.json').version") install firefox
 ```
 
 ### W3C Design Tokens (DTCG) Format
@@ -175,7 +175,7 @@ DESIGN.md reports only what Dembrandt observed on the source site. Exact values 
 Use `--wcag` to check accessibility contrast ratios across the page. Unlike palette-based checkers, dembrandt walks the actual DOM and finds what color is rendered on top of what background — per element.
 
 ```bash
-dembrandt stripe.com --wcag
+dembrandt dembrandt.com --wcag
 ```
 
 Returns every text/background pair with contrast ratio and WCAG 2.1 grade (AA, AA-Large, AAA, or fail), sorted by how often each pair appears. Results are shown in terminal and included in JSON output as `wcag`.
@@ -187,7 +187,7 @@ Also captures **interactive state contrast**: dembrandt simulates hover, focus, 
 Motion tokens are extracted automatically on every run — no flag needed. Dembrandt analyzes CSS transitions and animations across the page and returns a structured motion profile.
 
 ```bash
-dembrandt stripe.com
+dembrandt dembrandt.com
 ```
 
 Returns:
@@ -207,51 +207,66 @@ dembrandt example.com --brand-guide
 # Saves to: output/example.com/TIMESTAMP.brand-guide.pdf
 ```
 
+## Continuous integration
+
+Dembrandt drives a real browser, so the browser revision must match `playwright-core`.
+
+If you are not using the Playwright container image, install the browser revision that matches `playwright-core`:
+
+```bash
+# in dembrandt's own repo
+npm run install-browser
+# elsewhere — derive the version so it always matches
+npx playwright@$(node -p "require('playwright-core/package.json').version") install --with-deps chromium
+```
+
+A mismatched version fails with "Executable doesn't exist". The container image avoids this entirely — just match its tag (`v1.60.0`) to the `playwright-core` version.
+
 ## Recipes
 
 **Quick brand scan**
 ```bash
-dembrandt stripe.com
+dembrandt dembrandt.com
 ```
 
 **Compare two sites**
 ```bash
-dembrandt stripe.com --save-output
+dembrandt dembrandt.com --save-output
 dembrandt braintree.com --save-output
-# Compare output/stripe.com and output/braintree.com side by side
+# Compare output/dembrandt.com and output/braintree.com side by side
 ```
 
 **Multi-page audit** — get a fuller picture across the whole site
 ```bash
-dembrandt stripe.com --crawl 10 --sitemap --save-output
+dembrandt dembrandt.com --crawl 10 --sitemap --save-output
 ```
 
 **Spot-check a value** — verify a specific token fast
 ```bash
-dembrandt stripe.com --json-only | grep -i "border-radius"
+dembrandt dembrandt.com --json-only | grep -i "border-radius"
 ```
 
 **Export for Tailwind** — get spacing and color values into your config
 ```bash
-dembrandt stripe.com --dtcg --save-output
+dembrandt dembrandt.com --dtcg --save-output
 # Use the .tokens.json with Style Dictionary to generate tailwind.config.js
 ```
 
 **Export for Tokens Studio / Figma**
 ```bash
-dembrandt stripe.com --dtcg --save-output
+dembrandt dembrandt.com --dtcg --save-output
 # Import the .tokens.json directly into Tokens Studio
 ```
 
 **Generate DESIGN.md for your AI agent**
 ```bash
-dembrandt stripe.com --design-md
+dembrandt dembrandt.com --design-md
 # Point your agent at the output DESIGN.md
 ```
 
 **Accessibility audit** — check contrast on any live URL
 ```bash
-dembrandt stripe.com --wcag
+dembrandt dembrandt.com --wcag
 ```
 
 **Regression baseline** — snapshot now, catch drift later

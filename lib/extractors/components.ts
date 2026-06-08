@@ -128,10 +128,10 @@ export async function extractInputStyles(page) {
 
       let inputType = 'text';
       if (input.tagName === 'SELECT') inputType = 'select';
-      else if (input.type === 'checkbox') inputType = 'checkbox';
-      else if (input.type === 'radio') inputType = 'radio';
+      else if ((input as any).type === 'checkbox') inputType = 'checkbox';
+      else if ((input as any).type === 'radio') inputType = 'radio';
 
-      const specificType = input.type || input.tagName.toLowerCase();
+      const specificType = (input as any).type || input.tagName.toLowerCase();
 
       const defaultState = {
         backgroundColor: computed.backgroundColor,
@@ -146,16 +146,16 @@ export async function extractInputStyles(page) {
       let focusState = null;
       try {
         const sheets = Array.from(document.styleSheets);
-        const className = typeof input.className === 'string' ? input.className : input.className.baseVal || '';
+        const className = typeof input.className === 'string' ? input.className : (input as any).className.baseVal || '';
         const classes = className.split(' ').filter(c => c);
         for (const sheet of sheets) {
           try {
-            const rules = Array.from(sheet.cssRules || []);
+            const rules = Array.from(sheet.cssRules || []) as any[];
             for (const rule of rules) {
               if (rule.selectorText) {
                 const matchesInput = classes.some(cls => rule.selectorText.includes(`.${cls}`)) ||
                   rule.selectorText.includes(input.tagName.toLowerCase()) ||
-                  (input.type && rule.selectorText.includes(`[type="${input.type}"]`));
+                  ((input as any).type && rule.selectorText.includes(`[type="${(input as any).type}"]`));
                 if (matchesInput && rule.selectorText.includes(':focus')) {
                   if (!focusState) focusState = {};
                   if (rule.style.backgroundColor) focusState.backgroundColor = rule.style.backgroundColor;
@@ -228,11 +228,11 @@ export async function extractLinkStyles(page) {
         let hoverState = null;
         try {
           const sheets = Array.from(document.styleSheets);
-          const className = typeof link.className === 'string' ? link.className : link.className.baseVal || '';
+          const className = typeof link.className === 'string' ? link.className : (link as any).className.baseVal || '';
           const classes = className.split(' ').filter(c => c);
           for (const sheet of sheets) {
             try {
-              const rules = Array.from(sheet.cssRules || []);
+              const rules = Array.from(sheet.cssRules || []) as any[];
               for (const rule of rules) {
                 if (rule.selectorText) {
                   const matchesLink = classes.some(cls => rule.selectorText.includes(`.${cls}`)) ||
@@ -307,7 +307,7 @@ export async function extractBadgeStyles(page) {
       const paddingRight = parseFloat(computed.paddingRight);
       if ((paddingTop + paddingBottom) / 2 > 16 || (paddingLeft + paddingRight) / 2 > 24) return;
 
-      const className = typeof badge.className === 'string' ? badge.className : badge.className.baseVal || '';
+      const className = typeof badge.className === 'string' ? badge.className : (badge as any).className.baseVal || '';
       const hasSemanticClass = /badge|tag|pill|chip|label|status/i.test(className);
       const hasSemanticRole = badge.getAttribute('role') === 'status';
       const borderRadius = parseFloat(computed.borderRadius);

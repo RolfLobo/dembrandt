@@ -1,9 +1,9 @@
 export async function extractSiteName(page) {
   return await page.evaluate(() => {
-    const ogSiteName = document.querySelector('meta[property="og:site_name"]');
+    const ogSiteName = document.querySelector('meta[property="og:site_name"]') as any;
     if (ogSiteName?.content?.trim()) return ogSiteName.content.trim();
 
-    const appName = document.querySelector('meta[name="application-name"]');
+    const appName = document.querySelector('meta[name="application-name"]') as any;
     if (appName?.content?.trim()) return appName.content.trim();
 
     const ldScripts = document.querySelectorAll('script[type="application/ld+json"]');
@@ -24,7 +24,7 @@ export async function extractSiteName(page) {
       if (sep && sep[1].length > 1 && sep[1].length < 40) return sep[1].trim();
     }
 
-    const logoImg = document.querySelector('img[class*="logo"], img[id*="logo"], a[class*="logo"] img');
+    const logoImg = document.querySelector('img[class*="logo"], img[id*="logo"], a[class*="logo"] img') as any;
     if (logoImg?.alt?.trim() && logoImg.alt.length < 40) return logoImg.alt.trim();
 
     return null;
@@ -35,7 +35,7 @@ export async function extractLogo(page, url) {
   // Extract manifest.json for PWA icons
   const manifestIcons = await page.evaluate((baseUrl) => {
     try {
-      const manifestLink = document.querySelector('link[rel="manifest"]');
+      const manifestLink = document.querySelector('link[rel="manifest"]') as any;
       if (!manifestLink) return [];
       return [{ manifestUrl: new URL(manifestLink.getAttribute('href'), baseUrl).href }];
     } catch {
@@ -44,7 +44,7 @@ export async function extractLogo(page, url) {
   }, url);
 
   let pwaIcons = [];
-  let manifestMeta = {};
+  const manifestMeta: any = {};
   if (manifestIcons.length > 0) {
     try {
       const manifestUrl = manifestIcons[0].manifestUrl;
@@ -140,7 +140,6 @@ export async function extractLogo(page, url) {
     function scoreLogo(el, context) {
       let score = 0;
       const rect = el.getBoundingClientRect();
-      const s = getComputedStyle(el);
       const parentLink = el.closest('a');
       const linkHref = parentLink?.getAttribute('href') || '';
       const imgSrc = el.tagName === 'IMG' ? (el.getAttribute('src') || '') : '';
@@ -323,9 +322,9 @@ export async function extractLogo(page, url) {
 
           // Disqualify third-party brand logos: alt like "Notion logo" / "Perplexity logo" / "Figma" where the brand isn't our site
           // These appear in customer/integration/testimonial sections on marketing pages.
-          const altBrandMatch = altText.match(/^([a-z][a-z0-9\-\.]{1,30}?)(?:\s+(?:logo|icon|brand|wordmark))?$/i);
+          const altBrandMatch = altText.match(/^([a-z][a-z0-9.-]{1,30}?)(?:\s+(?:logo|icon|brand|wordmark))?$/i);
           if (altBrandMatch) {
-            const altBrand = altBrandMatch[1].replace(/[\s\-\.]/g, '').toLowerCase();
+            const altBrand = altBrandMatch[1].replace(/[\s.-]/g, '').toLowerCase();
             if (altBrand && altBrand !== 'logo' && altBrand !== 'brand' && altBrand !== 'icon' && altBrand !== siteDomain && !altBrand.includes(siteDomain) && !siteDomain.includes(altBrand)) {
               return; // third-party brand, skip entirely
             }
@@ -397,14 +396,14 @@ export async function extractLogo(page, url) {
     }
 
     // SPA/PWA apps often render into a root div — treat it as transparent wrapper
-    const spaRoot = document.querySelector('#app, #root, #__next, #__nuxt, [data-reactroot]');
+    const spaRoot = document.querySelector('#app, #root, #__next, #__nuxt, [data-reactroot]') as any;
 
     const headerEl = document.querySelector(
       'header, [role="banner"], [class*="header"], [id*="header"]'
     ) || (() => {
       // Fallback: find first visually top element in SPA root or body that spans full width
       const root = spaRoot || document.body;
-      const children = Array.from(root.children);
+      const children = Array.from((root as any).children) as any[];
       for (const child of children) {
         const rect = child.getBoundingClientRect();
         const s = getComputedStyle(child);
@@ -414,8 +413,8 @@ export async function extractLogo(page, url) {
       }
       return null;
     })();
-    const navEl = document.querySelector('nav, [role="navigation"]');
-    const footerEl = document.querySelector('footer, [role="contentinfo"], [class*="footer"], [id*="footer"]');
+    const navEl = document.querySelector('nav, [role="navigation"]') as any;
+    const footerEl = document.querySelector('footer, [role="contentinfo"], [class*="footer"], [id*="footer"]') as any;
 
     // Hero: first large section that's not header/footer
     const heroEl = (() => {
@@ -458,12 +457,11 @@ export async function extractLogo(page, url) {
       const candidates = [];
       const children = Array.from(container.children).slice(0, 3);
       for (const child of children) {
-        const shallow = document.createElement('div');
         // Scan the child itself + its direct children
-        const els = [child, ...Array.from(child.children)];
+        const els = [child, ...Array.from((child as any).children)];
         for (const el of els) {
-          if (el.matches('img, svg')) {
-            const found = findLogosInZone(el.parentElement || container, context);
+          if ((el as any).matches('img, svg')) {
+            const found = findLogosInZone((el as any).parentElement || container, context);
             candidates.push(...found.filter(c => c.el === el || c.cssBackground));
           }
         }
@@ -518,10 +516,10 @@ export async function extractLogo(page, url) {
 
     // Deduplicate zones — nav might be inside header, avoid double-scanning
     const headerCandidates = firstChildrenZone(headerEl, 'header');
-    const navCandidates = (navEl && !headerEl?.contains(navEl))
+    const navCandidates = (navEl && !(headerEl as any)?.contains(navEl))
       ? firstChildrenZone(navEl, 'header')
       : [];
-    const sidebarCandidates = (sidebarEl && !headerEl?.contains(sidebarEl))
+    const sidebarCandidates = (sidebarEl && !(headerEl as any)?.contains(sidebarEl))
       ? sidebarZone(sidebarEl)
       : [];
 
@@ -574,12 +572,12 @@ export async function extractLogo(page, url) {
       }
     });
 
-    const ogImage = document.querySelector('meta[property="og:image"]');
+    const ogImage = document.querySelector('meta[property="og:image"]') as any;
     if (ogImage?.getAttribute('content')) {
       try { favicons.push({ type: 'og:image', url: new URL(ogImage.getAttribute('content'), baseUrl).href, sizes: null }); } catch {}
     }
 
-    const twitterImage = document.querySelector('meta[name="twitter:image"]');
+    const twitterImage = document.querySelector('meta[name="twitter:image"]') as any;
     if (twitterImage?.getAttribute('content')) {
       try { favicons.push({ type: 'twitter:image', url: new URL(twitterImage.getAttribute('content'), baseUrl).href, sizes: null }); } catch {}
     }

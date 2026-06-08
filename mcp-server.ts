@@ -7,7 +7,7 @@
  * Windsurf, and any MCP-compatible client.
  *
  * Install:
- *   claude mcp add --transport stdio dembrandt -- npx -y dembrandt-mcp
+ *   claude mcp add --transport stdio dembrandt -- npx -y --package dembrandt dembrandt-mcp
  */
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -31,17 +31,17 @@ const nullSpinner = {
   text: "",
   start(msg) { this.text = msg; return this; },
   stop() { return this; },
-  succeed(msg) { return this; },
-  fail(msg) { return this; },
-  warn(msg) { return this; },
-  info(msg) { return this; },
+  succeed(_msg) { return this; },
+  fail(_msg) { return this; },
+  warn(_msg) { return this; },
+  info(_msg) { return this; },
 };
 
 /**
  * Run extraction with error handling suitable for MCP responses.
  * Returns { ok, data?, error? } so tool handlers never throw.
  */
-async function runExtraction(url, options = {}) {
+async function runExtraction(url: string, options: any = {}) {
   if (!/^https?:\/\//i.test(url)) url = "https://" + url;
   let browser;
   try {
@@ -225,14 +225,14 @@ const sync = z.boolean().optional().default(false).describe("Wait for result dir
 
 // ── Extraction tools ───────────────────────────────────────────────────
 
-server.tool(
+(server.tool as any)(
   "get_design_tokens",
   "Extract the full design system from a live website. Launches a real browser, navigates to the site, and returns production-ready design tokens: color palette (hex, RGB, LCH, OKLCH) with semantic roles and CSS custom properties, typography scale (families, fallbacks, sizes, weights, line heights, letter spacing by context), spacing system with grid detection, border radii, border patterns, box shadows for elevation, component styles (buttons with hover/focus states, inputs, links, badges), responsive breakpoints, logo and favicons, site name, detected CSS frameworks, and icon systems. Returns a job_id by default — use get_job_status to poll for the result.",
   { url, slow, sync },
   toolHandler((d) => d),
 );
 
-server.tool(
+(server.tool as any)(
   "get_color_palette",
   "Extract brand colors from a live website. Returns semantic colors (primary, secondary, accent), full palette ranked by usage frequency and confidence (high/medium/low), CSS custom properties with their design-system names, and hover/focus state colors discovered by simulating real user interactions. Each color in hex, RGB, LCH, and OKLCH. Returns a job_id by default — use get_job_status to poll for the result.",
   {
@@ -242,21 +242,21 @@ server.tool(
   toolHandler((d) => ({ url: d.url, colors: d.colors })),
 );
 
-server.tool(
+(server.tool as any)(
   "get_typography",
   "Extract typography from a live website. Returns every font family with its fallback stack, the complete type scale grouped by context (heading, body, button, link, caption) with pixel and rem sizes, weights, line heights, letter spacing, and text transforms. Also reports font sources: Google Fonts URLs, Adobe Fonts usage, and variable font detection. Returns a job_id by default — use get_job_status to poll for the result.",
   { url, slow, sync },
   toolHandler((d) => ({ url: d.url, typography: d.typography })),
 );
 
-server.tool(
+(server.tool as any)(
   "get_component_styles",
   "Extract UI component styles from a live website. Returns button variants with default, hover, active, and focus states (background, text color, padding, border radius, border, shadow, outline, opacity), input field styles (border, focus ring, padding, placeholder), link styles (color, text decoration, hover changes), and badge/tag styles. Returns a job_id by default — use get_job_status to poll for the result.",
   { url, slow, sync },
   toolHandler((d) => ({ url: d.url, components: d.components })),
 );
 
-server.tool(
+(server.tool as any)(
   "get_surfaces",
   "Extract surface treatment tokens from a live website: border radii with element context (which radii are used on buttons vs cards vs inputs vs modals), border patterns (width + style + color combinations), and box shadow elevation levels. Returns a job_id by default — use get_job_status to poll for the result.",
   { url, slow, sync },
@@ -268,14 +268,14 @@ server.tool(
   })),
 );
 
-server.tool(
+(server.tool as any)(
   "get_spacing",
   "Extract the spacing system from a live website: common margin and padding values sorted by frequency, pixel and rem values, and grid system detection (4px, 8px, or custom scale). Returns a job_id by default — use get_job_status to poll for the result.",
   { url, slow, sync },
   toolHandler((d) => ({ url: d.url, spacing: d.spacing })),
 );
 
-server.tool(
+(server.tool as any)(
   "get_brand_identity",
   "Extract brand identity from a live website: site name, logo (source, dimensions, safe zone), all favicon variants (icon, apple-touch-icon, og:image, twitter:image with sizes and URLs), detected CSS frameworks (Tailwind, Bootstrap, MUI, etc.), icon systems (Font Awesome, Material Icons, SVG), and responsive breakpoints. Returns a job_id by default — use get_job_status to poll for the result.",
   { url, slow, sync },
@@ -292,7 +292,7 @@ server.tool(
 
 // ── Job management tools ───────────────────────────────────────────────
 
-server.tool(
+(server.tool as any)(
   "get_job_status",
   "Poll for the result of an async extraction job. Returns status (queued/running/completed/failed/cancelled) and the full result once completed. Call this after any extraction tool that returned a job_id.",
   { job_id: z.string().describe("The job_id returned by an extraction tool") },
@@ -305,7 +305,7 @@ server.tool(
   },
 );
 
-server.tool(
+(server.tool as any)(
   "cancel_job",
   "Cancel a queued extraction job. Has no effect on jobs that are already running.",
   { job_id: z.string().describe("The job_id to cancel") },

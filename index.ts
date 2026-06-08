@@ -14,7 +14,7 @@ import { chromium, firefox } from "playwright-core";
 import { extractBranding } from "./lib/extractors/index.js";
 import { displayResults } from "./lib/formatters/terminal.js";
 import { color } from "./lib/formatters/theme.js";
-import { toW3CFormat } from "./lib/formatters/w3c.js";
+import { toDtcgTokens } from "./lib/formatters/dtcg.js";
 import { generatePDF } from "./lib/formatters/pdf.js";
 import { generateDesignMd } from "./lib/formatters/markdown.js";
 import { parseSitemap } from "./lib/discovery.js";
@@ -27,10 +27,22 @@ import { checkRobotsTxt } from "./lib/robots.js";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const { version } = JSON.parse(readFileSync(join(__dirname, "package.json"), "utf8"));
 
+/**
+ * ora options for a spinner on the given stream. The spinner animates only on
+ * a real interactive terminal: a non-TTY (piped) or CI environment gets the
+ * final status lines without the frame churn that garbles logs. Some CI runners
+ * allocate a pseudo-TTY, so we check CI explicitly rather than rely on isTTY.
+ */
+function spinnerOptions(useStderr = false) {
+  const stream = useStderr ? process.stderr : process.stdout;
+  return { stream, isEnabled: Boolean(stream.isTTY) && !process.env.CI };
+}
+
 program
   .name("dembrandt")
-  .description("Extract design tokens from any website")
+  .description("Extract design tokens from any website.")
   .version(version)
+  .enablePositionalOptions()
   .argument("<url>")
   .argument("[paths...]", "Additional paths on the same domain to extract and merge, e.g. /pricing /docs")
   .option("--browser <type>", "Browser to use (chromium|firefox); set BROWSER_CDP_ENDPOINT env var to connect to an existing Chromium instance via CDP", "chromium")
@@ -46,13 +58,15 @@ program
   .option("--raw-colors", "Include pre-filter raw colors in JSON output")
   .option("--screenshot <path>", "Save a viewport screenshot of the page (not full-page)")
   .option("--wcag", "Analyze WCAG contrast ratios between palette colors")
-  .option("--crawl [n]", "Auto-discover and extract up to N pages via DOM links (default: 5); combine with --sitemap to use sitemap discovery instead", (v) => {
+  .option("--crawl [n]", "Auto-discover and extract up to N pages via DOM links (default: 5); combine with --sitemap to use sitemap discovery instead", (v: any) => {
     if (v === undefined || v === true) return 5;
     const n = parseInt(v, 10);
     if (isNaN(n) || n < 1) throw new Error(`--crawl must be a positive integer, got: ${v}`);
     return n;
   })
   .option("--sitemap", "Discover pages from sitemap.xml instead of DOM links; use alone or combine with --crawl to set page limit")
+  .option("--cookie <string>", "Cookie string for authenticated pages, e.g. \"session=abc; token=xyz\"")
+  .option("--header <string>", "Extra HTTP header, e.g. \"Authorization: Bearer eyJ...\"")
   .option("--stealth", "Enable anti-detection: navigator spoofing, human mouse simulation, randomized fingerprint (use only when authorized)")
   .option("--user-agent <string>", "Custom user agent string")
   .option("--locale <string>", "Browser locale for fingerprint, e.g. en-GB, fi-FI; affects content only if the site reacts to Accept-Language (default: en-US)")
@@ -71,7 +85,7 @@ program
       console.log = (...args) => console.error(...args);
     }
 
-    const spinner = ora({ text: "Starting extraction...", stream: opts.jsonOnly ? process.stderr : process.stdout }).start();
+    const spinner = ora({ text: "Starting extraction...", ...spinnerOptions(opts.jsonOnly) }).start();
 
     try {
       const robots = await checkRobotsTxt(url);
@@ -127,6 +141,7 @@ program
 
           result = await extractBranding(url, spinner, browser, {
             navigationTimeout: 90000,
+            verbose: !opts.jsonOnly,
             darkMode: opts.darkMode,
             mobile: opts.mobile,
             slow: opts.slow,
@@ -135,6 +150,8 @@ program
             wcag: opts.wcag,
             includeRawColors: opts.rawColors,
             stealth: opts.stealth,
+            cookie: opts.cookie,
+            header: opts.header,
             userAgent: opts.userAgent,
             locale: opts.locale,
             timezoneId: opts.timezone,
@@ -186,6 +203,7 @@ program
               try {
                 const pageResult = await extractBranding(pageUrl, spinner, browser, {
                   navigationTimeout: 90000,
+                  verbose: !opts.jsonOnly,
                   darkMode: opts.darkMode,
                   mobile: opts.mobile,
                   slow: opts.slow,
@@ -242,7 +260,7 @@ program
       }
 
       // Convert to W3C format if requested
-      const outputData = opts.dtcg ? toW3CFormat(result) : result;
+      const outputData = opts.dtcg ? toDtcgTokens(result) : result;
 
       // Collect "saved to" notices and print them after the results below
       const savedNotices = [];
@@ -343,7 +361,6 @@ program
       if (opts.jsonOnly) {
         console.log = originalConsoleLog;
         console.log(JSON.stringify(outputData, null, 2));
-        // Keep stdout pure JSON: summary and notices go to stderr
         console.error(summaryLine);
         for (const notice of savedNotices) console.error(notice);
       } else {
@@ -363,5 +380,66 @@ program
       if (browser) await browser.close();
     }
   });
+
+// Grouped --help for the root command. Commander 11 has no native option groups,
+// so render them via a custom formatHelp. Subcommands keep a single flat list.
+const OPTION_GROUPS = [
+  ["Extraction", ["--dark-mode", "--mobile", "--slow", "--crawl", "--sitemap", "--browser"]],
+  ["Output & export", ["--json-only", "--save-output", "--dtcg", "--brand-guide", "--design-md", "--screenshot", "--raw-colors"]],
+  ["Analysis", ["--wcag"]],
+  ["Network & auth", ["--cookie", "--header", "--user-agent", "--locale", "--timezone", "--accept-language", "--screen-size"]],
+  ["Anti-detection", ["--stealth", "--no-sandbox"]],
+];
+
+program.configureHelp({
+  formatHelp(cmd, helper) {
+    const helpWidth = helper.helpWidth ?? 80;
+    const termWidth = helper.padWidth(cmd, helper);
+    const indent = 2;
+
+    const item = (term, desc) => {
+      if (!desc) return term;
+      const full = `${term.padEnd(termWidth + 2)}${desc}`;
+      return helper.wrap(full, helpWidth - indent, termWidth + 2);
+    };
+    const block = (lines) => lines.map((l) => " ".repeat(indent) + l).join("\n");
+
+    const out = [`Usage: ${helper.commandUsage(cmd)}`, ""];
+    const description = helper.commandDescription(cmd);
+    if (description) out.push(description, "");
+
+    const args = helper.visibleArguments(cmd);
+    if (args.length) {
+      out.push("Arguments:", block(args.map((a) => item(helper.argumentTerm(a), helper.argumentDescription(a)))), "");
+    }
+
+    const options = helper.visibleOptions(cmd);
+    if (options.length) {
+      if (cmd.parent) {
+        out.push("Options:", block(options.map((o) => item(helper.optionTerm(o), helper.optionDescription(o)))), "");
+      } else {
+        const byLong = new Map(options.map((o) => [o.long ?? o.short, o]));
+        const used = new Set();
+        for (const [title, flags] of OPTION_GROUPS) {
+          const groupOpts = (flags as any[]).map((f: any) => byLong.get(f)).filter(Boolean);
+          if (!groupOpts.length) continue;
+          groupOpts.forEach((o) => used.add(o));
+          out.push(`${title}:`, block(groupOpts.map((o) => item(helper.optionTerm(o), helper.optionDescription(o)))), "");
+        }
+        const rest = options.filter((o) => !used.has(o));
+        if (rest.length) {
+          out.push("General:", block(rest.map((o) => item(helper.optionTerm(o), helper.optionDescription(o)))), "");
+        }
+      }
+    }
+
+    const commands = helper.visibleCommands(cmd);
+    if (commands.length) {
+      out.push("Commands:", block(commands.map((c) => item(helper.subcommandTerm(c), helper.subcommandDescription(c)))), "");
+    }
+
+    return out.join("\n").replace(/\n{3,}/g, "\n\n").trimEnd() + "\n";
+  },
+});
 
 program.parse();

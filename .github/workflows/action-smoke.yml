@@ -19,13 +19,16 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Run the action against dembrandt.com
         id: gate
         uses: ./
         with:
           url: https://www.dembrandt.com
+          # Test the code in this checkout, not the published release: the
+          # version pinned in action.yml only reaches npm after publish.
+          cli-version: local
 
       - name: Assert report exists and is valid JSON
         run: |

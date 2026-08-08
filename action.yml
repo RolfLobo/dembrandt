@@ -28,7 +28,7 @@ inputs:
   cli-version:
     description: 'Dembrandt CLI version to install. Set to "local" to build and install the action checkout itself, which the pre-release smoke in this repo uses because the pinned version is not on npm until publish.'
     required: false
-    default: "0.26.1"
+    default: "0.27.0"
 
 outputs:
   report:

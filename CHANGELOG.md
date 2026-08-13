@@ -1,15 +1,26 @@
 # Changelog
 
-## Unreleased
+## [0.28.0] - 2026-08-13
 
 ### Added
+- `--color-format=hex|rgb|lch|oklch|source` selects the notation for displayed colors. Presentational: it covers the palette, borders and every component section in the terminal, and leaves the JSON payload alone, which carries every notation regardless. `source` prints a declared token as it was authored. Export paths ignore it and the CLI says so (#155)
+- `typography.styles` entries carry `count`, the number of elements rendering that exact style
+- `typography.sources.filteredFamilies` lists families dropped by the usage floor
 - `typography.sources.urls` lists the resolved http(s) font asset and webfont-provider stylesheet URLs seen during extraction, sorted and deduped, so a consumer can re-fetch or verify the real font files (#147)
 - `--tailwind [path]` writes a Tailwind v4 `@theme` CSS file. Observed values only: no shade ramps, no interpolated scale steps, no derived states. Colors keep their semantic role or the page's own custom property name; spacing collapses to v4's `--spacing` multiplier when the page has a base-N rhythm
 - `npm run tailwind:check` and a weekly `Tailwind Watch` workflow open an issue when a new Tailwind major is published, which is the only event that can invalidate the emitted theme namespaces
 
 ### Changed
-- Output contract bumped to schema 1.6.0 for that field. Additive: 1.5.x consumers ignore it, and the drift engine does not read it, so no baseline churn
+- Output contract at schema 1.7.0. 1.6.0 added `typography.sources.urls`, which no consumer had to adapt to; 1.7.0 moves existing values (see Fixed)
 - Merged multi-page runs sort the font URL union, so page order cannot reach the output
+
+### Fixed
+- Palette confidence has a usage floor, as spacing and radii always had. A color seen once caps at low, twice at medium, and high needs three occurrences whatever its context score. Hover and focus colors keep medium: their single occurrence is provenance, not a usage claim
+- `body` ends at the 24px reading range. Non-heading text above it takes the existing `text` role, so hero copy stops landing on the body token
+- A font family covering under 2% of counted text (minimum 3 elements) is dropped from `styles` and listed in `sources.filteredFamilies`, which removes faces that third-party embeds drag onto a page. dembrandt.com goes from six families to the two it uses
+
+### Upgrading
+- **Baselines churn once.** The three fixes above move colour and typography values. Measured on dembrandt.com against a 0.27.1 extraction: drift 15 against a threshold of 10. Re-approve with `--compare <baseline> --approve`, or regenerate baselines, on first run after upgrading
 
 ## [0.25.1] - 2026-07-28
 

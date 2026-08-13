@@ -5,7 +5,9 @@
 [![license](https://img.shields.io/npm/l/dembrandt.svg)](https://github.com/dembrandt/dembrandt/blob/main/LICENSE)
 [![GitHub Sponsors](https://img.shields.io/badge/Sponsor-me-pink?style=flat&logo=github-sponsors)](https://github.com/sponsors/dembrandt)
 
-Extract a website's design system into design tokens in a few seconds: logo, colors, typography, borders, and more. One command.
+Extract any website's design system in one command. Enforce it in CI.
+
+Logo, colors, typography, spacing, borders, shadows, motion, components. W3C design tokens in seconds.
 
 ![Dembrandt: Any website to design tokens](https://raw.githubusercontent.com/dembrandt/dembrandt/main/docs/images/banner.png)
 
@@ -22,7 +24,7 @@ which ships no browser binaries, so a fresh install has nothing to launch until 
 run it. Skipping it fails with `browser engine not available`.
 
 Or use npx without installing: `npx dembrandt dembrandt.com`. The browser step applies
-here too — run `npx dembrandt install-browser` first. Browsers land in a shared
+here too: run `npx dembrandt install-browser` first. Browsers land in a shared
 Playwright cache, so either route only needs it once.
 
 Requires Node.js 18+
@@ -68,10 +70,9 @@ Extract a preview deployment, compare against a committed baseline, fail the job
 
 The action annotates the PR with the drifted tokens. On any other runner the gate is just an exit code plus JSON: `dembrandt URL --compare baseline.json --json-only` exits 1 on drift and prints per-token `changes[]`. See **[docs/ci.md](docs/ci.md)** for the Action inputs, the platform-neutral gate, and the exit code table.
 
-## More
+## Recipes
 
-- **[Recipes](docs/recipes.md)** — copy-paste workflows, plus the filterable library at [dembrandt.com/recipes](https://www.dembrandt.com/recipes): competitor benchmarking, WCAG audits, Figma token push, agentic design system builds
-- **[Flag compatibility](docs/FLAGS.md)** — interactions, ignored combinations, multi-page propagation
+Copy a command, paste a prompt, get a result. Competitor benchmarking, WCAG audits, Figma token push, agentic design system builds. Filterable by role at **[dembrandt.com/recipes](https://www.dembrandt.com/recipes)**, with the basics in [docs/recipes.md](docs/recipes.md).
 
 ## AI Agent Integration (MCP)
 
@@ -96,7 +97,7 @@ Or add to your project's `.mcp.json`:
 
 Available tools include `get_design_tokens`, `get_color_palette`, `get_typography`, `get_component_styles`, `get_surfaces`, `get_spacing`, and `get_brand_identity`, plus pure analysis tools (`compute_drift`, `get_findings`, `export_dtcg`, `generate_design_md`, `render_report`) and job-control tools. Extraction tools accept `mobile`, `cookie` (for authenticated pages), and `wcag` options.
 
-Pair with **[dembrandt-skills](https://github.com/dembrandt/dembrandt-skills)** to give your agent UX intelligence on top of extracted tokens — hierarchy, accessibility, interaction states, and a full 6-stage design pipeline orchestrator.
+Pair with **[dembrandt-skills](https://github.com/dembrandt/dembrandt-skills)** to give your agent UX intelligence on top of extracted tokens: hierarchy, accessibility, interaction states, and a full 6-stage design pipeline orchestrator.
 
 ```bash
 npx skills add dembrandt/dembrandt-skills
@@ -109,7 +110,7 @@ Load extractions, track token drift, and compare snapshots. **[dembrandt.com/app
 * **Automatic drift tracking from CI.** Generate an API key at [dembrandt.com/app/api-keys](https://www.dembrandt.com/app/api-keys), then pass `--key` to the CLI. Every run uploads a snapshot to your account and scores it against the previous one for that domain. Wire into GitHub Actions or any CI runner and every deploy records itself.
 * **Pin a baseline.** Mark any snapshot as your reference. Every subsequent extraction is automatically scored against it.
 * **Visual diff.** Color swatches, before/after values, delta scores per category: colors, typography, spacing, radius, shadows.
-* **Snapshot timeline.** Proportional timeline per domain — scrub across any date range from days to years.
+* **Snapshot timeline.** Proportional timeline per domain, scrub across any date range from days to years.
 * **Compare side by side.** Load multiple extractions into one view: two releases, two sites, or two surfaces.
 * **Copy tokens.** Paste values straight into Copilot, Claude, or Cursor.
 * **No login required for local use.** Data stays in the browser. Sign in with GitHub to enable cloud sync.
@@ -140,6 +141,13 @@ The CLI is MIT-licensed and free. Sponsorship funds the enforcement layer: a com
 <!-- sponsors -->
 <!-- Backer ($25+) and Lead sponsor ($500+) logos appear here. -->
 <!-- sponsors -->
+
+## Documentation
+
+- [docs/usage.md](docs/usage.md): every flag, multi-page extraction, browser selection, CDP, DTCG, DESIGN.md, Tailwind theme, WCAG, motion, brand guide PDF
+- [docs/ci.md](docs/ci.md): GitHub Action, drift gate, exit codes
+- [docs/recipes.md](docs/recipes.md): copy-paste workflows
+- [docs/FLAGS.md](docs/FLAGS.md): flag interactions, ignored combinations, multi-page propagation
 
 ## Contributing
 

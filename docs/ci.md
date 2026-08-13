@@ -18,7 +18,7 @@ The official action wraps extract → compare → gate into one step: it install
     baseline: .dembrandt/baseline.json
 ```
 
-Gating a Vercel preview needs no extra wiring — trigger on the deployment event and pass its URL:
+Gating a Vercel preview needs no extra wiring: trigger on the deployment event and pass its URL:
 
 ```yaml
 on:
@@ -39,7 +39,7 @@ jobs:
 
 | Input | Required | Description |
 |---|---|---|
-| `url` | yes | URL to extract — typically the PR's preview deployment |
+| `url` | yes | URL to extract, typically the PR's preview deployment |
 | `baseline` | no | Committed baseline JSON path, or an App baseline id. Omit to extract without gating |
 | `key` | no | API key for cloud snapshot sync ([dembrandt.com/app/api-keys](https://www.dembrandt.com/app/api-keys)) |
 | `args` | no | Extra CLI flags, e.g. `--wcag` or `--crawl 3` |
@@ -59,7 +59,7 @@ dembrandt install-browser
 npx playwright@$(node -p "require('playwright-core/package.json').version") install --with-deps chromium
 ```
 
-A mismatched version fails with "Executable doesn't exist". The container image avoids this entirely — just match its tag (`v1.60.0`) to the `playwright-core` version.
+A mismatched version fails with "Executable doesn't exist". The container image avoids this entirely: just match its tag (`v1.60.0`) to the `playwright-core` version.
 
 ## Drift gate
 
@@ -69,23 +69,23 @@ Compare an extraction against a committed baseline and fail the job on drift:
 # capture a baseline once (same environment you will check against)
 dembrandt https://app.example.com --json-only > baseline.json
 
-# in CI — exits non-zero on drift; writes a report artifact
+# in CI, exits non-zero on drift; writes a report artifact
 dembrandt https://app.example.com --compare baseline.json --html report.html
 ```
 
-When the change is intended, accept it as the new baseline — `--approve` overwrites the local baseline file and passes instead of failing:
+When the change is intended, accept it as the new baseline: `--approve` overwrites the local baseline file and passes instead of failing:
 
 ```bash
 dembrandt https://app.example.com --compare baseline.json --approve
 ```
 
-Add `--json-only` to a `--compare` run to get the drift report as machine-readable JSON under a `drift` key — `score`, `status`, `summary`, and per-token `changes[]` (each with `category`, `kind`, `before`, `after`, `delta`). A CI gate can render exactly which tokens moved (e.g. in a PR comment) from this instead of parsing the HTML report:
+Add `--json-only` to a `--compare` run to get the drift report as machine-readable JSON under a `drift` key: `score`, `status`, `summary`, and per-token `changes[]` (each with `category`, `kind`, `before`, `after`, `delta`). A CI gate can render exactly which tokens moved (e.g. in a PR comment) from this instead of parsing the HTML report:
 
 ```bash
 dembrandt https://app.example.com --compare baseline.json --json-only
 ```
 
-**Any CI.** The gate is platform-neutral — it is just the exit code plus the drift JSON, so it drops into any runner:
+**Any CI.** The gate is platform-neutral: it is just the exit code plus the drift JSON, so it drops into any runner:
 
 ```bash
 dembrandt "$PREVIEW/checkout" --compare base.json --json-only > drift.json
@@ -105,6 +105,6 @@ A pipeline can branch on the exit code; "design drifted" and "extraction broke" 
 | `0` | Success, or stable (no drift) under `--compare` |
 | `1` | Drift detected (`--compare`) |
 | `2` | Extraction failure (`EXTRACTION_FAILED`, `BROWSER_UNAVAILABLE`) |
-| `67` | Navigation/connection timeout (`NAVIGATION_TIMEOUT`) — retryable, try `--slow` |
+| `67` | Navigation/connection timeout (`NAVIGATION_TIMEOUT`), retryable, try `--slow` |
 
 With `--json-only`, a failure also prints a machine-readable `{ "error": { "code", "message" } }` to stdout.

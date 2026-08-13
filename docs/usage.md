@@ -20,7 +20,7 @@ dembrandt dembrandt.com --no-sandbox    # Disable Chromium sandbox (required for
 dembrandt dembrandt.com --key dmb_···  # Push snapshot to your Dembrandt account; auto-scored against the previous snapshot for that domain
                                        # DEMBRANDT_API_URL env var overrides the upload endpoint (default: https://www.dembrandt.com)
 dembrandt dembrandt.com --browser=firefox # Use Firefox instead of Chromium (better for Cloudflare bypass)
-dembrandt dembrandt.com --wcag          # WCAG 2.1 contrast analysis — real DOM pairs, AA/AAA grades
+dembrandt dembrandt.com --wcag          # WCAG 2.1 contrast analysis, real DOM pairs, AA/AAA grades
 dembrandt dembrandt.com --stealth       # Opt-in anti-detection: navigator spoofing + human mouse simulation (use only when authorized)
 dembrandt dembrandt.com --locale fi-FI --timezone Europe/Helsinki # Browser fingerprint: locale and timezone
 dembrandt dembrandt.com --user-agent "Mozilla/5.0 ..."           # Custom user agent string
@@ -30,7 +30,7 @@ dembrandt dembrandt.com --screen-size 2560x1440                  # Physical scre
 
 Default: formatted terminal display only. Use `--save-output` to persist results as JSON files. Browser automatically retries in visible mode if headless extraction fails.
 
-`--color-format` is presentational and covers terminal output only: the palette, borders and every component section print the notation you pick. `source` shows a declared token as it was authored. The JSON payload is unaffected — it carries hex, rgb, lch and oklch for every color regardless — so `--json-only`, `--save-output`, `--dtcg`, `--design-md`, `--html` and `--brand-guide` are untouched, and drift comparisons stay stable across notations. The CLI warns when you combine it with one of those.
+`--color-format` is presentational and covers terminal output only: the palette, borders and every component section print the notation you pick. `source` shows a declared token as it was authored. The JSON payload is unaffected (it carries hex, rgb, lch and oklch for every color regardless), so `--json-only`, `--save-output`, `--dtcg`, `--design-md`, `--html` and `--brand-guide` are untouched, and drift comparisons stay stable across notations. The CLI warns when you combine it with one of those.
 
 All flags combine unless noted otherwise: see [FLAGS.md](FLAGS.md) for the flag compatibility tables (interactions, ignored combinations, multi-page propagation).
 
@@ -157,7 +157,7 @@ A scheduled `Tailwind Watch` workflow runs weekly. It checks for a new major, wh
 
 ## WCAG Contrast Analysis
 
-Use `--wcag` to check accessibility contrast ratios across the page. Unlike palette-based checkers, dembrandt walks the actual DOM and finds what color is rendered on top of what background — per element.
+Use `--wcag` to check accessibility contrast ratios across the page. Unlike palette-based checkers, dembrandt walks the actual DOM and finds what color is rendered on top of what background, per element.
 
 ```bash
 dembrandt dembrandt.com --wcag
@@ -169,7 +169,7 @@ Also captures **interactive state contrast**: dembrandt simulates hover, focus, 
 
 ## Motion Tokens
 
-Motion tokens are extracted automatically on every run — no flag needed. Dembrandt analyzes CSS transitions and animations across the page and returns a structured motion profile.
+Motion tokens are extracted automatically on every run, no flag needed. Dembrandt analyzes CSS transitions and animations across the page and returns a structured motion profile.
 
 ```bash
 dembrandt dembrandt.com
@@ -190,7 +190,7 @@ dembrandt dembrandt.com --ai
 #   ⚡ ML primary → #533afd (score 0.93 · 68% acc)
 ```
 
-Replaces the heuristic with a trained model — 2× more accurate (68% vs 32%). Requires the optional `onnxruntime-node` dep (`npm install onnxruntime-node`). Without the flag nothing changes.
+Replaces the heuristic with a trained model, 2× more accurate (68% vs 32%). Requires the optional `onnxruntime-node` dep (`npm install onnxruntime-node`). Without the flag nothing changes.
 
 ## Brand Guide PDF
 

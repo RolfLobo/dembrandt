@@ -41,11 +41,36 @@ Requires Node.js 18+
 
 Playwright renders the page, dembrandt reads computed styles from the DOM, analyzes color usage and confidence, groups similar typography, detects spacing patterns, and returns design tokens.
 
-## Documentation
+## Common flags
 
-- **[Usage](docs/usage.md)** — every flag, multi-page extraction, browser selection, CDP, DTCG, DESIGN.md, Tailwind theme, WCAG, motion, brand guide PDF
-- **[Recipes](docs/recipes.md)** — copy-paste workflows, plus the full library at [dembrandt.com/recipes](https://www.dembrandt.com/recipes)
-- **[Continuous integration](docs/ci.md)** — GitHub Action, drift gate, exit codes
+```bash
+dembrandt dembrandt.com --save-output   # Save JSON to output/dembrandt.com/TIMESTAMP.json
+dembrandt dembrandt.com --dtcg          # W3C Design Tokens (DTCG) export, for Style Dictionary or Tokens Studio
+dembrandt dembrandt.com --design-md     # DESIGN.md for AI agents
+dembrandt dembrandt.com --tailwind      # Tailwind v4 @theme CSS, observed values only
+dembrandt dembrandt.com --wcag          # WCAG 2.1 contrast, real DOM pairs with AA/AAA grades
+dembrandt dembrandt.com --crawl 10      # Merge 10 pages into one output, cross-page confidence boosting
+dembrandt dembrandt.com --slow          # 3x timeouts for JavaScript-heavy sites
+```
+
+Default is formatted terminal output only. Full flag reference in **[docs/usage.md](docs/usage.md)**: mobile and dark mode, browser selection and CDP, brand guide PDF, motion tokens, fingerprint options.
+
+## Catch design drift in CI
+
+Extract a preview deployment, compare against a committed baseline, fail the job when tokens moved:
+
+```yaml
+- uses: dembrandt/dembrandt@v0.28.0
+  with:
+    url: https://preview.example.com
+    baseline: .dembrandt/baseline.json
+```
+
+The action annotates the PR with the drifted tokens. On any other runner the gate is just an exit code plus JSON: `dembrandt URL --compare baseline.json --json-only` exits 1 on drift and prints per-token `changes[]`. See **[docs/ci.md](docs/ci.md)** for the Action inputs, the platform-neutral gate, and the exit code table.
+
+## More
+
+- **[Recipes](docs/recipes.md)** — copy-paste workflows, plus the filterable library at [dembrandt.com/recipes](https://www.dembrandt.com/recipes): competitor benchmarking, WCAG audits, Figma token push, agentic design system builds
 - **[Flag compatibility](docs/FLAGS.md)** — interactions, ignored combinations, multi-page propagation
 
 ## AI Agent Integration (MCP)

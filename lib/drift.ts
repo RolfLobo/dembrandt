@@ -11,6 +11,12 @@
  */
 
 import type { BrandingResult as ExtractionResult, TypographyStyle, Confidence } from "./types.js";
+// The palette compares on `normalized`, which is already hex. The semantic map
+// has no normalized twin: it carries whatever notation the page authored, so it
+// must be parsed before comparison or a page declaring oklch() would read as
+// drift against the same colour written as hex. One spec parser, not a second
+// copy of one living here.
+import { parseCssColor } from "./color-parse.js";
 
 export interface DriftConfig {
   /** ΔE at or below this: colors treated as identical. */
@@ -153,7 +159,125 @@ function colorWeight(e: ColorEntry): number {
   return roleW * Math.sqrt(Math.max(1, e.count));
 }
 
-function compareColors(base: ColorEntry[], cand: ColorEntry[], cfg: DriftConfig): { changes: DriftChange[]; result: CategoryResult } {
+/** Semantic values are authored strings, so normalise to hex identity before
+ * comparing. Falls back to the raw string when the parser cannot read it, which
+ * keeps an unparseable value comparing equal to itself rather than fabricating
+ * drift. */
+function semanticHex(value: string): string {
+  const parsed = parseCssColor(value);
+  if (!parsed) return value;
+  const h = (n: number) => n.toString(16).padStart(2, "0");
+  return `#${h(parsed.r)}${h(parsed.g)}${h(parsed.b)}`;
+}
+
+/** A role is present only if it names a colour that actually paints. An empty
+ * string is not a value, and a fully transparent one is a role the page does
+ * not render — treating rgba(0,0,0,0) as a colour made two different "nothing
+ * painted" values compare as a delta-100 change, and hid a brand colour being
+ * turned invisible (alpha 1 -> 0) as no change at all. */
+function present(value: string | undefined): string | undefined {
+  if (!value || !String(value).trim()) return undefined;
+  const parsed = parseCssColor(value);
+  if (parsed && parsed.a === 0) return undefined;
+  return value;
+}
+
+/** Spec-parser fallback for the notations parseColor cannot read. */
+function rgbFromCss(value: string): [number, number, number] | null {
+  const parsed = parseCssColor(value);
+  return parsed ? [parsed.r, parsed.g, parsed.b] : null;
+}
+
+/**
+ * Compare the semantic map role by role: primary against primary, not against
+ * whatever else is on the page.
+ *
+ * The palette pass cannot see this. It matches colours to their nearest
+ * neighbour by delta-E, so a rebrand that promotes an existing palette colour to
+ * primary leaves the palette set identical and scores zero — the roles moved,
+ * the colours did not. The semantic map used to be read only to attach
+ * role labels to palette entries, so changing the brand primary produced no
+ * drift at all (DEM-208).
+ *
+ * A role that moves is the most severe colour event there is, so these use the
+ * same ROLE_WEIGHT ladder as the palette and are folded into the colour
+ * category.
+ *
+ * A role appearing or disappearing is reported but never scored. Semantic
+ * presence is a derived claim, not evidence. `accent` is emitted only when
+ * confidence, chroma and hue-distance predicates all pass, and those flip
+ * between runs of an unchanged page — scoring that alone produced 11 against a
+ * threshold of 10, a red gate with zero design change. The colour evidence
+ * underneath already sits in the palette, which is scored: if the colour truly
+ * left the page, the palette charges for it there. Charging again here is
+ * double-counting the detector's opinion on top of the fact. So a vanished role
+ * shows up in the report, where a human can read it, and moves no score. Only a
+ * role whose value actually changed is scored.
+ */
+function compareSemantic(
+  base: Record<string, string> | undefined,
+  cand: Record<string, string> | undefined,
+  cfg: DriftConfig,
+): { changes: DriftChange[]; penalty: number; weight: number; changed: number; added: number; removed: number } {
+  const changes: DriftChange[] = [];
+  let penalty = 0;
+  let weight = 0;
+  let changed = 0;
+  let added = 0;
+  let removed = 0;
+
+  const b = base ?? {};
+  const c = cand ?? {};
+  const roles = [...new Set([...Object.keys(b), ...Object.keys(c)])].sort();
+
+  for (const role of roles) {
+    const before = present(b[role]);
+    const after = present(c[role]);
+    // Role weight only; there is no usage count on a semantic entry, and the
+    // sqrt(count) dampening the palette applies would understate it anyway.
+    const w = ROLE_WEIGHT[role.toLowerCase()] ?? 1;
+
+    if (before && after) {
+      const d = deltaE(semanticHex(before), semanticHex(after));
+      // An unchanged role contributes NOTHING — not penalty, and not weight.
+      // Adding its weight to the denominator would let a stable semantic map
+      // dilute real palette drift, which turned a measured score of 11 (drift)
+      // into 9 (stable) and could flip an existing gate from red to green.
+      // Only roles that actually moved take part in the score.
+      if (d <= cfg.colorSame) continue;
+      weight += w;
+      changes.push({
+        category: "color",
+        kind: "changed",
+        label: `semantic.${role}`,
+        before,
+        after,
+        // deltaE returns Infinity for two different unparseable values
+        // (var(--a) vs var(--b)); Infinity serialises to null and renders as
+        // "delta Infinity" in CI annotations, so omit it rather than emit it.
+        ...(Number.isFinite(d) ? { delta: round(d) } : {}),
+      });
+      // Beyond colorShift the role did not shift, it was replaced: full weight.
+      penalty += d <= cfg.colorShift ? clamp01(d / cfg.colorShift) * w : w;
+      changed++;
+    } else if (before) {
+      changes.push({ category: "color", kind: "removed", label: `semantic.${role}`, before });
+      removed++;
+    } else if (after) {
+      changes.push({ category: "color", kind: "added", label: `semantic.${role}`, after });
+      added++;
+    }
+  }
+
+  return { changes, penalty, weight, changed, added, removed };
+}
+
+function compareColors(
+  base: ColorEntry[],
+  cand: ColorEntry[],
+  cfg: DriftConfig,
+  semantic?: { base: Record<string, string> | undefined; cand: Record<string, string> | undefined },
+): { changes: DriftChange[]; result: CategoryResult } {
   const changes: DriftChange[] = [];
   const used = new Set<number>();
   let penalty = 0;
@@ -196,6 +320,17 @@ function compareColors(base: ColorEntry[], cand: ColorEntry[], cfg: DriftConfig)
     penalty += 0.5 * colorWeight(cc);
     added++;
   });
+
+  // The semantic map rides in the same category: a role is a colour claim, and
+  // splitting it out would let a moved primary average away against a palette
+  // that did not move.
+  const sem = compareSemantic(semantic?.base, semantic?.cand, cfg);
+  changes.push(...sem.changes);
+  penalty += sem.penalty;
+  totalWeight += sem.weight;
+  changed += sem.changed;
+  added += sem.added;
+  removed += sem.removed;
 
   // Weighted: a primary/accent shift dominates a background-tint shift instead
   // of counting the same. Score stays 0..1 (penalty divided by total weight).
@@ -406,7 +541,11 @@ function compareShadows(base: string[], cand: string[]): { changes: DriftChange[
 function paletteEntries(e: ExtractionResult): ColorEntry[] {
   const roleByRgb = new Map<string, string>();
   for (const [role, hex] of Object.entries(e.colors?.semantic ?? {})) {
-    const rgb = parseColor(hex);
+    // parseColor reads hex and legacy rgb() only. A page that authors its
+    // semantic colours in oklch/lch — what --color-format emits, and what
+    // modern token pipelines write — attached no role at all, so the same
+    // palette shift scored 30 in hex and 19 in oklch. Use the spec parser.
+    const rgb = parseColor(hex) ?? rgbFromCss(hex);
     if (rgb) roleByRgb.set(rgb.join(","), role);
   }
   return (e.colors?.palette ?? [])
@@ -579,7 +718,18 @@ export function computeDrift(
   const comparable = (b: unknown[], c: unknown[]) => b.length + c.length > 0;
 
   const parts = [
-    { ...compareColors(basePalette, candPalette, cfg), w: cfg.weights.color, comparable: comparable(basePalette, candPalette) },
+    {
+      ...compareColors(basePalette, candPalette, cfg, {
+        base: baseline.colors?.semantic,
+        cand: candidate.colors?.semantic,
+      }),
+      w: cfg.weights.color,
+      // A page with no palette but a detected semantic map still has colour to
+      // compare, so the comparable check has to see both sources.
+      comparable:
+        comparable(basePalette, candPalette) ||
+        comparable(Object.keys(baseline.colors?.semantic ?? {}), Object.keys(candidate.colors?.semantic ?? {})),
+    },
     {
       ...compareTypography(baseTypo, candTypo, cfg),
       w: cfg.weights.typography,

@@ -15,7 +15,7 @@ The tables below list the only exceptions: combinations that change each other's
 | `--dtcg` + `--save-output` | Two files: the raw extraction (`.json`, from `--save-output`) and the DTCG tokens (`.tokens.json`, from `--dtcg`), same timestamp. Each flag alone writes only its own file. |
 | `--json-only` + `--dtcg` | stdout is the DTCG document. `--wcag`, `--raw-colors`, and `pages` data exist only in the raw extraction: drop `--dtcg` or add `--save-output` to get them. |
 | `--json-only` + any export flag | Exports still write. All status output moves to stderr so stdout stays parseable JSON. |
-| `--ai` + `--compare` | ML overwrites `colors.semantic.primary` before the compare runs. Comparing an `--ai` run against a non-`--ai` baseline (or vice versa) can report false primary-color drift. Use the same flag on both sides. |
+| `--ai` + `--compare` | ML overwrites `colors.semantic.primary` before the compare runs, and the drift engine compares the semantic map role by role, so an `--ai` run against a non-`--ai` baseline (or vice versa) reports primary-color drift that reflects the flag rather than the site. Use the same flag on both sides. Older baselines predate this: the semantic map used to be left out of the comparison entirely, so the same mismatch was silently invisible rather than reported. |
 | `--key` + `--crawl` / `--sitemap` / extra paths | Merged multi-page results can exceed the 150 KB sync cap; the upload is then skipped with a warning. |
 
 ## Combinations that are ignored or fail

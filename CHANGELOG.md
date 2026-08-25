@@ -1,11 +1,17 @@
 # Changelog
 
-## Unreleased
+## [0.29.0] - 2026-08-25
 
 ### Added
 - MCP extraction tools take `pages`, `paths` and `sitemap`, crawling and merging several pages over the same path as the CLI. `sitemap` alone takes up to 20 pages; `pages` caps it. A page that fails to load is dropped and the merge carries the rest (#172)
 - MCP extraction tools take `noSandbox` (also `DEMBRANDT_NO_SANDBOX`) for Docker and CI containers, plus `header` and `userAgent`. A launch failure names `noSandbox` as the remedy (#172)
 - `compute_drift`, `get_findings`, `export_dtcg`, `generate_design_md` and `render_report` accept the `job_id` of a completed extraction in place of an inline one. They previously took the whole extraction as a tool argument, so an agent had to resend a result it had just received, which is prohibitive at real extraction sizes. An inline extraction still wins when both are given (#172)
+
+- npm tarballs are published from CI with provenance, via npm trusted publishing (OIDC). The release workflow's publish guard now separates "already published" from a registry error and fails closed on the latter, instead of skipping the publish and reporting success (#167)
+
+### Changed
+- `--key` sync exits 3 (`SYNC_FAILED`) when the snapshot did not reach the cloud, instead of printing a warning and exiting 0. A run that was asked to record drift and did not is a failed run, and in CI the old warning scrolled past in a log nobody reads while the build stayed green. Drift (exit 1) still takes precedence, and the messages name the remedy: a size overrun suggests a page count derived from the measured payload, a 401 points at the key page (#169)
+- The cloud sync payload limit is the API's to enforce. The CLI sent its own copy of the cap, so raising the server limit still needed a CLI release and lowering it produced a rejected payload the CLI could have explained up front. A 413 now carries the same page-count advice, derived from the run (#170)
 
 ### Fixed
 - MCP: two concurrent extractions restored each other's console handlers, so the second job's output could land in the JSON-RPC stream. Console is silenced once per process instead (#172)

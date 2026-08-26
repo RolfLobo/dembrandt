@@ -10,7 +10,7 @@
 import { program, Option, InvalidArgumentError } from "commander";
 import chalk from "chalk";
 import ora from "ora";
-import { loadBrowserEngines, PlaywrightMissingError } from "./lib/browser.js";
+import { loadBrowserEngines, PlaywrightMissingError, isMissingBrowserBinary } from "./lib/browser.js";
 import { extractBranding } from "./lib/extractors/index.js";
 import { displayResults, terminalLink } from "./lib/formatters/terminal.js";
 import { COLOR_FORMATS, isColorFormat } from "./lib/colors.js";
@@ -31,7 +31,7 @@ import { checkRobotsTxt } from "./lib/robots.js";
 import { EXIT, classifyError } from "./lib/exit-codes.js";
 import { activeFlags, pathSummary } from "./lib/run-summary.js";
 import { consumeCloudHint } from "./lib/cli-state.js";
-import { installBrowsers } from "./lib/install-browser.js";
+import { installBrowsers, bundledPlaywrightVersion } from "./lib/install-browser.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const { version } = JSON.parse(readFileSync(join(__dirname, "package.json"), "utf8"));
@@ -178,6 +178,9 @@ program
     try {
       let useHeaded = false;
       let result;
+      // The browser is installed at most once per run. Without this a install
+      // that succeeds but still cannot launch would loop on the same download.
+      let browserInstallTried = false;
 
       while (true) {
         // Select browser type based on --browser flag
@@ -211,8 +214,26 @@ program
             // real install. The condition that actually bites is a missing
             // browser *binary*, which only surfaces here, as raw Playwright
             // text. Translate it into our own instruction instead.
-            if (/Executable doesn't exist/i.test(launchErr?.message ?? "")) {
-              throw new PlaywrightMissingError(opts.browser === 'firefox' ? 'firefox' : 'chromium');
+            if (isMissingBrowserBinary(launchErr)) {
+              const engine = opts.browser === 'firefox' ? 'firefox' : 'chromium';
+              // Telling someone to run a second command is where first runs go
+              // to die: the extraction they asked for is abandoned, and the
+              // instruction is easy to mistype or to mistake for a dead end.
+              // The installer is the same one `dembrandt install-browser` runs
+              // and derives the revision from the bundled playwright-core, so
+              // it cannot install a browser this build will not find.
+              if (!browserInstallTried) {
+                browserInstallTried = true;
+                spinner.stop();
+                console.log(
+                  chalk.dim(`No ${engine} for playwright-core ${bundledPlaywrightVersion()} yet. Installing it once, then continuing.`)
+                );
+                if (installBrowsers([engine]) === 0) {
+                  spinner.start();
+                  continue;
+                }
+              }
+              throw new PlaywrightMissingError(engine);
             }
             throw launchErr;
           }

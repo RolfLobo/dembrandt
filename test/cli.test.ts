@@ -50,6 +50,18 @@ test('the missing-engine hint names the engine so the fix actually applies', asy
   assert.match(new PlaywrightMissingError().message, /install-browser chromium/);
 });
 
+test('a missing browser binary is told apart from a missing module', async () => {
+  const { isMissingBrowserBinary } = await import('../lib/browser.js');
+  // The two failures read alike and need opposite fixes: a missing binary is
+  // recoverable by installing it mid-run, a missing module is not. Playwright
+  // exposes no code for the first, so this matches its message.
+  assert.equal(isMissingBrowserBinary(new Error("Executable doesn't exist at /x/y")), true);
+  assert.equal(isMissingBrowserBinary(new Error("Cannot find module 'playwright-core'")), false);
+  assert.equal(isMissingBrowserBinary(null), false);
+  assert.equal(isMissingBrowserBinary(undefined), false);
+  assert.equal(isMissingBrowserBinary({}), false);
+});
+
 test('--color-format rejects an unknown notation with the valid values listed', () => {
   const r = run(['dembrandt.com', '--color-format=hsl']);
   assert.notEqual(r.status, 0);

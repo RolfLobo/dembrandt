@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.30.0] - 2026-08-26
+
+### Fixed
+- An extraction that finds no browser binary installs the matching one and carries on, instead of failing with `browser engine not available` and naming a second command to run. Since 0.27.1 pinned `playwright-core` to an exact version, the documented `npx playwright-core install chromium` installed whatever revision the registry served, which the pinned driver could not find; before the pin the range floated to the same version and the two matched by accident. `dembrandt install-browser` still exists for anyone who would rather pay the download up front
+
 ## [0.29.0] - 2026-08-25
 
 ### Added

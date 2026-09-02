@@ -507,6 +507,9 @@ export interface VoiceFragment {
   order: number;
   /** Debug provenance for the source element. Only emitted with `debug`. */
   selectorHint?: string;
+  /** Which page this fragment was read from. Only set on a merged multi-page
+   *  voice corpus (`voiceAllPages`); a single-page `Voice` has no need for it. */
+  page?: string;
 }
 
 /** Coarse page classification. Sets the word budget and role weights only. */
@@ -566,6 +569,8 @@ export interface Voice {
   fragments: VoiceFragment[];
   metrics: VoiceMetrics;
   pageType: VoicePageType;
+  /** Total word count fell under WORD_FLOOR: metrics are computed but noisy. */
+  belowWordFloor?: boolean;
 }
 
 /** CLI / programmatic options accepted by extractBranding(). */

@@ -265,11 +265,13 @@ program
             acceptLanguage: opts.acceptLanguage,
             screenSize: opts.screenSize,
             teach: opts.teach,
+            browser: opts.browser,
             _version: version,
           });
 
           // Build list of additional URLs to extract
           let additionalUrls = [];
+          let sitemapMax = null;
 
           if (hasExplicitPaths) {
             // Explicit paths: resolve against base URL
@@ -281,6 +283,7 @@ program
           } else if (opts.sitemap) {
             if (!opts.jsonOnly) spinner.start("Fetching sitemap...");
             const max = crawlN ? crawlN - 1 : 20;
+            sitemapMax = max;
             additionalUrls = await parseSitemap(result.url, max);
             if (additionalUrls.length === 0 && result.url !== url) {
               additionalUrls = await parseSitemap(url, max);
@@ -291,9 +294,14 @@ program
 
           delete result._discoveredLinks;
 
+          const crawlTechnique = hasExplicitPaths ? 'explicit-paths' : opts.sitemap ? 'sitemap' : isAutoCrawl ? 'auto' : null;
+
           if (additionalUrls.length === 0) {
             if ((hasExplicitPaths || opts.sitemap || isAutoCrawl) && !opts.jsonOnly) {
               spinner.warn("No additional pages discovered");
+            }
+            if (crawlTechnique && result.meta) {
+              result.meta.crawl = { technique: crawlTechnique, pagesRequested: hasExplicitPaths ? paths.length + 1 : opts.sitemap ? sitemapMax + 1 : (crawlN || null), pagesFound: 1 };
             }
           } else {
             spinner.stop();
@@ -327,6 +335,7 @@ program
                   locale: opts.locale,
                   timezoneId: opts.timezone,
                   acceptLanguage: opts.acceptLanguage,
+                  browser: opts.browser,
                 });
                 delete pageResult._discoveredLinks;
                 allResults.push(pageResult);
@@ -336,7 +345,15 @@ program
             }
 
             spinner.stop();
+            const pagesFound = allResults.length;
             result = mergeResults(allResults);
+            if (crawlTechnique && result.meta) {
+              result.meta.crawl = {
+                technique: crawlTechnique,
+                pagesRequested: hasExplicitPaths ? paths.length + 1 : opts.sitemap ? sitemapMax + 1 : (crawlN || null),
+                pagesFound,
+              };
+            }
           }
 
           if (!hasExplicitPaths && !opts.sitemap && !isAutoCrawl) {

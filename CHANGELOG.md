@@ -22,6 +22,14 @@ Stability pass: colour math, hydration timing, and robots.txt coverage.
 ### Changed
 - Dependency updates: `@modelcontextprotocol/sdk`, `tailwindcss`, `@tailwindcss/cli`, `@google/design.md` (#185)
 
+### If you run `--crawl`, `--sitemap`, or MCP `pages` in a CI drift gate
+
+The robots.txt fix above can shrink a merged multi-page result by one page if the target site disallows something that was previously crawled without complaint. A page a site owner has explicitly excluded is usually not representative of the general design system anyway, so this is a one-time correction, not a regression. If a committed baseline includes such a page, the next run may report drift against it. Remedy: `dembrandt URL --compare baseline.json --approve` once, or regenerate the baseline.
+
+The WCAG contrast fix (`--wcag`) also moves values, not just adds fields: a translucent surface that previously reported a wrong, better-looking contrast ratio now reports the real one. A CI gate keyed on `--wcag` output may see new failures that reflect an existing accessibility issue this release now measures correctly.
+
+`release:churn` against dembrandt.com and stripe.com (single-page, no `--crawl`) shows no churn past threshold from either fix.
+
 ## [0.30.0] - 2026-08-26
 
 ### Fixed

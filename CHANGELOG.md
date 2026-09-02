@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.31.0] - 2026-09-02
+
+Stability pass: colour math, hydration timing, and robots.txt coverage.
+
+### Added
+- `colors.palette` entries gain `contrastAgainst`, the observed WCAG pairs each colour was measured against, deduped by the other colour and sorted by ratio (#186)
+- `meta` gains `requestedUrl`, `contentLength`, `timeouts` and `crawl` (technique, pages requested, pages found) for `--crawl`, `--sitemap` and explicit paths (#178)
+- `meta` gains `robotsWarnings`. robots.txt is now checked for every page a multi-page crawl discovers, in both the CLI and the MCP server, not just the entry URL. A disallowed page is skipped and named here instead of extracted without a trace (#193)
+- Typography sources gain resolved font asset and webfont stylesheet URLs (#180)
+
+### Fixed
+- WCAG contrast pairs and `contrastAgainst` now reflect the colour a viewer actually sees, alpha composited against the layers behind it, instead of the raw declared value. A translucent background or text colour was read as opaque before this (#188)
+- The page-context deltaE implementation, hand duplicated because it runs inside `page.evaluate()`, carried a rounded threshold constant that put it slightly out of step with the canonical Lab conversion (#187)
+- `pagesRequested` was null for `--sitemap` without `--crawl`, instead of the actual page count (#178)
+- `hasRenderedContent` no longer counts a hidden or fully collapsed element as rendered content during SPA hydration checks (#179)
+- A below-fold footer logo that names its own brand in alt text or filename is recognised even without a home link, without over-matching short or hyphenated domain roots (#177, #184)
+- Motion durations are read before the reduced-motion freeze is applied, instead of after (#174)
+- Voice collection no longer silently drops thin pages with no way to tell why (#176)
+
+### Changed
+- Dependency updates: `@modelcontextprotocol/sdk`, `tailwindcss`, `@tailwindcss/cli`, `@google/design.md` (#185)
+
 ## [0.30.0] - 2026-08-26
 
 ### Fixed

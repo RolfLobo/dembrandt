@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.31.1] - 2026-09-02
+
+### Fixed
+- `ExtractionMeta` was missing `requestedUrl`, `contentLength`, `timeouts` and `crawl` in the TypeScript type, even though they've been in the actual JSON output since 1.9.0. A strict consumer importing `dembrandt/types` had no way to read them without a cast. Type-only change, no schema or runtime shape change (#194)
+
 ## [0.31.0] - 2026-09-02
 
 Stability pass: colour math, hydration timing, and robots.txt coverage.

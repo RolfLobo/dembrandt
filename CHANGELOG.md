@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.37.0] - 2026-09-29
+
+What the page declares now reaches the output: token names, font families, a monochrome primary.
+
+### Fixed
+- `typography.sources.customFonts` names families. The extractor collected @font-face families and never returned them, so the field fell back to fetched file names. When cross-origin stylesheets hide the rules it lists the families set on text that document.fonts reports as loaded. `selfHostedFonts` keeps the file names and `sources.fontDisplay` is emitted for the first time (#240)
+- A site whose every button is black or white elected no primary while accents of equal count sat in the palette. Black and white CTA fills are counted apart, never compete with a chromatic candidate, and become the primary only when nothing chromatic was elected and two or more buttons share the fill (#245)
+- A crawl's merged palette kept the most counted shade of a cluster and could drop the homepage primary while `semantic.primary` still named it. The elected primary stays canonical for its cluster (#238)
+- Headless UI was reported on any Tailwind site with three or more accessible toggles. Detection matches only the markers the library emits (#236)
+
+### Added
+- Palette entries carry `tokens`: the custom property names that declare that exact colour. Tokens are read from html and body, gated on the value being a colour rather than on the property name, and color-mix() values resolve, so shadcn-style semantic tokens and page-builder palettes count as provenance (#237)
+
+### Changed
+- README export flags are ordered by how people reach for them: token and agent formats first, framework themes, then reports and raw output (#241)
+
+### Upgrading
+Output contract 1.16.0 to 1.17.0, additive. Baseline churn on `dembrandt.com` against 0.36.0: stable 0. `semantic.primary` moves on sites that theme through unprefixed tokens and on monochrome sites that previously reported none; a baseline that recorded a null primary there drifts on that role once. Re-approve with `--compare <baseline> --approve` once, or regenerate the baseline.
+
 ## [0.36.0] - 2026-09-22
 
 What the tool reports now matches what is actually on the page.

@@ -36,7 +36,14 @@
 /**
  * dembrandt output contract version. Bump per the policy documented above.
  *
- *  1.17.0 — typography.sources.customFonts names families, not the fetched
+ *  1.17.0 — colors.palette entries gain `tokens`: the custom property names
+ *          that declare this exact colour. Additive: 1.16.x consumers ignore
+ *          it. BEHAVIOR: declared tokens are read from body as well as :root,
+ *          the name gate (color/bg/text/brand) is gone, and color-mix()
+ *          values resolve. Unprefixed semantic tokens (--primary,
+ *          --background) and body-scoped kit tokens now count as provenance,
+ *          so primaries move on sites that theme through them.
+ *          Also: typography.sources.customFonts names families, not the fetched
  *          file names it fell back to; selfHostedFonts keeps the file names.
  *          sources.fontDisplay is emitted for the first time. Drift ignores
  *          both fields: dembrandt.com scores 0 against a 0.36.0 baseline.
